@@ -218,6 +218,43 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error batch inserting Trade records: {e}")
             raise
+    
+    def get_table_data(self, table_name: str, columns: List[str] = None, 
+                      condition: str = None, params: tuple = None) -> List[Tuple]:
+        """
+        Retrieve data from a specified table with optional filtering.
+        
+        Args:
+            table_name: Name of the table to query
+            columns: List of column names to retrieve (None for all columns)
+            condition: WHERE clause condition (without the 'WHERE' keyword)
+            params: Parameters for the condition
+            
+        Returns:
+            List of tuples containing the query results
+        """
+        try:
+            # Build the query
+            cols_str = "*" if not columns else ", ".join(columns)
+            query = f"SELECT {cols_str} FROM {table_name}"
+            
+            if condition:
+                query += f" WHERE {condition}"
+                
+            # Execute the query
+            if params:
+                self.cursor.execute(query, params)
+            else:
+                self.cursor.execute(query)
+                
+            # Fetch and return the results
+            results = self.cursor.fetchall()
+            print(f"Retrieved {len(results)} records from {table_name}")
+            return results
+            
+        except Exception as e:
+            print(f"Error retrieving data from {table_name}: {e}")
+            raise
         
 if __name__ == "__main__":
     # Initialize the database manager

@@ -144,16 +144,5 @@ class Client:
 
 if __name__ == '__main__':
     client = Client("https://api.liquiditytech.com", ".env")
-    client.create_portfolio_wrapped("TESTPortfolio")
-    #print(client.update_portfolioAPI({"portfolioId": "1730946854628000", "portfolioApiKey": "0A700692856E46AF9EEB1DA28DEE7379", "apiName": "ShortPortfolio", "ip": "57.180.142.124,13.115.67.82", "permission": "TRADE,READ"}))
-    #print(client.get_assets())
-    #print(client.get_orders())
-    # print(client.get_positions())
-    #print(client.create_portfolio_wrapped("tt12313"))
-    # print(client.create_portfolio({"name": "TestPortfolio"}))
-    # print(client.delete_portfolioAPI({"name": "tt12312", "portfolioId": "1734826745435000", "portfolioApiKey": "0EE30709D5A340E3B318E0F9FFC3B55C"}))
-    #print(client.delete_portfolioAPI({"portfolioId": "1730944581913000", "apiName": "ShortPortfolio", "portfolioApiKey":"BF051B9D786A41D4B8710CFFEF15AFD8"}))
-    #print(client.create_portfolioAPI({"portfolioId": "1734826745435000", "apiName": "HFTPortfolio", "ip": "13.115.67.82", "permission": "TRADE"}))
-    #print(client.get_portfolioAPI({"portfolioId": "1730946854628000"}))
-    #print(client.get_portfolio())
-    #print(client.update_portfolio({"name": "HFTPortfolio", "portfolioId": "1734826745435000"}))
+    result = client.get_orders()
+    print(result)
