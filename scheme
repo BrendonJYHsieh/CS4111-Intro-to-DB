@@ -1,0 +1,64 @@
+-- System table
+CREATE TABLE System (
+    portfolio_id INT PRIMARY KEY
+);
+
+-- Portfolio table
+CREATE TABLE Portfolio (
+    portfolio_id INT PRIMARY KEY,
+    name VARCHAR(255),
+    strategy_id VARCHAR(255),
+    FOREIGN KEY (portfolio_id) REFERENCES System(portfolio_id)
+);
+
+-- Strategy table
+CREATE TABLE Strategy (
+    strategy_id VARCHAR(255) PRIMARY KEY,
+    direction VARCHAR(255),
+    symbol VARCHAR(255)
+);
+
+-- Order table
+CREATE TABLE "Order" (
+    order_id VARCHAR(255) PRIMARY KEY,
+    time TIMESTAMP,
+    strategy_id VARCHAR(255),
+    price DOUBLE PRECISION,
+    qty DOUBLE PRECISION,
+    side VARCHAR(255),
+    symbol VARCHAR(255),
+    FOREIGN KEY (strategy_id) REFERENCES Strategy(strategy_id)
+);
+
+-- Log table
+CREATE TABLE Log (
+    log_id INT PRIMARY KEY,
+    time TIMESTAMP,
+    message VARCHAR(255),
+    portfolio_id INT,
+    FOREIGN KEY (portfolio_id) REFERENCES Portfolio(portfolio_id)
+);
+
+-- Portfolio Snapshot table
+CREATE TABLE Portfolio_Snapshot (
+    portfolio_id DOUBLE PRECISION,
+    time TIMESTAMP,
+    fund DOUBLE PRECISION,
+    leverage DOUBLE PRECISION,
+    position DOUBLE PRECISION,
+    order_value DOUBLE PRECISION,
+    PRIMARY KEY (portfolio_id, time)
+);
+
+-- Trade table
+CREATE TABLE Trade (
+    trade_id VARCHAR(255) PRIMARY KEY,
+    time TIMESTAMP,
+    strategy_id VARCHAR(255),
+    price DOUBLE PRECISION,
+    qty DOUBLE PRECISION,
+    side VARCHAR(255),
+    symbol VARCHAR(255),
+    volume DOUBLE PRECISION,
+    FOREIGN KEY (strategy_id) REFERENCES Strategy(strategy_id)
+);
