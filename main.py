@@ -16,6 +16,11 @@ if __name__ == "__main__":
         db_manager.connect()
         volumes = db_manager.get_strategy_volumes(1718693033751000)
         print(volumes)
+        # Get daily average trade frequency for each strategy
+        daily_avg_trade_freq = db_manager.get_strategy_daily_average_trade_frequency(1718693033751000)
+        print("\nDaily Average Trade Frequency:")
+        for strategy in daily_avg_trade_freq:
+            print(f"Strategy ID: {strategy[0]}, Symbol: {strategy[1]}, Direction: {strategy[2]}, Total Trades: {strategy[3]}, Trading Days: {strategy[4]}, Avg Trades per Day: {strategy[5]}")
     except Exception as e:
         print(f"Error: {e}")
     finally:

@@ -320,6 +320,60 @@ class DatabaseManager:
             print(f"Error retrieving strategy volumes: {e}")
             raise
 
+    def get_strategy_daily_average_trade_frequency(self, portfolio_id: Optional[int] = None, 
+                                                strategy_id: Optional[str] = None) -> List[Tuple]:
+        """
+        Get the daily average trade frequency for strategies.
+        
+        Args:
+            portfolio_id: Optional filter for a specific portfolio
+            strategy_id: Optional filter for a specific strategy
+            
+        Returns:
+            A list of tuples containing (strategy_id, symbol, direction, total_trades, 
+                                        trading_days, avg_trades_per_day)
+        """
+        try:
+            query = """
+                SELECT 
+                    s.strategy_id,
+                    s.symbol,
+                    s.direction,
+                    COUNT(t.trade_id) AS total_trades,
+                    COUNT(DISTINCT DATE(t.time)) AS trading_days,
+                    ROUND(COUNT(t.trade_id)::numeric / 
+                        NULLIF(COUNT(DISTINCT DATE(t.time)), 0)::numeric, 2) AS avg_trades_per_day,
+                    MIN(DATE(t.time)) AS first_trading_day,
+                    MAX(DATE(t.time)) AS last_trading_day
+                FROM Strategy s
+                JOIN Trade t ON s.strategy_id = t.strategy_id
+                WHERE 1=1
+            """
+            
+            params = []
+            
+            # Add filters if provided
+            if portfolio_id is not None:
+                query += " AND s.portfolio_id = %s"
+                params.append(portfolio_id)
+                
+            if strategy_id is not None:
+                query += " AND s.strategy_id = %s"
+                params.append(strategy_id)
+                
+            query += " GROUP BY s.strategy_id, s.symbol, s.direction"
+            query += " ORDER BY avg_trades_per_day DESC"
+            
+            # Execute the query
+            self.cursor.execute(query, params)
+            
+            results = self.cursor.fetchall()
+            print(f"Retrieved average daily trade frequency for {len(results)} strategies")
+            return results
+            
+        except Exception as e:
+            print(f"Error retrieving strategy daily average trade frequency: {e}")
+            raise
 def create_database_schema_from_file(db_manager, schema_file_path):
     """
     Creates the database schema by reading SQL commands from a file.
@@ -476,17 +530,17 @@ if __name__ == "__main__":
     try:
         # Connect to the database
         db_manager.connect()
-        # Drop all existing tables
-        drop_all_tables(db_manager)
-        #Create the database schema from file
-        create_database_schema_from_file(db_manager, 'scheme')
-        db_manager.insert_system(1718693033751000)
-        db_manager.insert_portfolio(1718693033751000, "RapidX Dev")
-        trades, unique_strategy_ids = parse_trades_log("../Maker-Trade-System/build/logs/Trades.log")
-        for strategy_id, strategy_info in unique_strategy_ids.items():
-            db_manager.insert_strategy(strategy_id, strategy_info['direction'], strategy_info['symbol'], 1718693033751000)
+
+        # drop_all_tables(db_manager)
+        # create_database_schema_from_file(db_manager, 'scheme')
+        # db_manager.insert_system(1718693033751000)
+        # db_manager.insert_portfolio(1718693033751000, "RapidX Dev")
+        # trades, unique_strategy_ids = parse_trades_log("../Maker-Trade-System/build/logs/Trades.log")
+        # for strategy_id, strategy_info in unique_strategy_ids.items():
+        #     db_manager.insert_strategy(strategy_id, strategy_info['direction'], strategy_info['symbol'], 1718693033751000)
         
-        for trade in trades[:500]:
+        trades, unique_strategy_ids = parse_trades_log("../Maker-Trade-System/build/logs/Trades.log")
+        for trade in trades:
             db_manager.insert_trade(trade[0], trade[1], trade[2], trade[3], trade[4], trade[5], trade[6], trade[7])
         
         # # Insert a strategy record
