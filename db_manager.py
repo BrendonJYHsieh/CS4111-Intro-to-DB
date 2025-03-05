@@ -284,6 +284,42 @@ class DatabaseManager:
             print(f"Error retrieving data from {table_name}: {e}")
             raise
         
+    def get_strategy_volumes(self, portfolio_id: int) -> List[Tuple]:
+        """
+        Get the total volume for each strategy in a specific portfolio.
+        
+        Args:
+            portfolio_id: The ID of the portfolio to query
+            
+        Returns:
+            A list of tuples containing (strategy_id, direction, symbol, total_volume, trade_count)
+        """
+        try:
+            self.cursor.execute("""
+                SELECT 
+                    s.strategy_id,
+                    SUM(t.volume) AS total_volume,
+                    COUNT(t.trade_id) AS trade_count
+                FROM 
+                    Strategy s
+                JOIN 
+                    Trade t ON s.strategy_id = t.strategy_id
+                WHERE 
+                    s.portfolio_id = %s
+                GROUP BY 
+                    s.strategy_id
+                ORDER BY 
+                    total_volume DESC
+            """, (portfolio_id,))
+            
+            results = self.cursor.fetchall()
+            print(f"Retrieved volume data for {len(results)} strategies in portfolio {portfolio_id}")
+            return results
+            
+        except Exception as e:
+            print(f"Error retrieving strategy volumes: {e}")
+            raise
+
 def create_database_schema_from_file(db_manager, schema_file_path):
     """
     Creates the database schema by reading SQL commands from a file.
