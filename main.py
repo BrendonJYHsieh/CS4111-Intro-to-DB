@@ -15,8 +15,10 @@ if __name__ == "__main__":
         # Connect to the database
         db_manager.connect()
         volumes = db_manager.get_strategy_volumes(1718693033751000)
-        print(volumes)
+        for volume in volumes:
+            print(f"Strategy ID: {volume[0]}, Total Volume: {volume[1]}, Total Trades: {volume[2]}")
         # Get daily average trade frequency for each strategy
+        
         daily_avg_trade_freq = db_manager.get_strategy_daily_average_trade_frequency(1718693033751000)
         print("\nDaily Average Trade Frequency:")
         for strategy in daily_avg_trade_freq:

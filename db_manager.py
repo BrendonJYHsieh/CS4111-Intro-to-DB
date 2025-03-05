@@ -292,7 +292,7 @@ class DatabaseManager:
             portfolio_id: The ID of the portfolio to query
             
         Returns:
-            A list of tuples containing (strategy_id, direction, symbol, total_volume, trade_count)
+            A list of tuples containing (strategy_id, total_volume, trade_count)
         """
         try:
             self.cursor.execute("""
