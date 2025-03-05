@@ -47,148 +47,170 @@ class DatabaseManager:
     
     # System table functions
     def insert_system(self, portfolio_id: int) -> None:
-        """Insert a record into the System table."""
+        """Insert a record into the System table, ignoring duplicates."""
         try:
             self.cursor.execute(
-                "INSERT INTO System (portfolio_id) VALUES (%s)",
+                "INSERT INTO System (portfolio_id) VALUES (%s) ON CONFLICT (portfolio_id) DO NOTHING",
                 (portfolio_id,)
             )
-            print(f"System record with portfolio_id {portfolio_id} inserted successfully.")
+            self.conn.commit()
+            print(f"System record with portfolio_id {portfolio_id} processed successfully.")
         except Exception as e:
             print(f"Error inserting System record: {e}")
+            self.conn.rollback()
             raise
     
     # Portfolio table functions
     def insert_portfolio(self, portfolio_id: int, name: str) -> None:
-        """Insert a record into the Portfolio table."""
+        """Insert a record into the Portfolio table, ignoring duplicates."""
         try:
             self.cursor.execute(
-                "INSERT INTO Portfolio (portfolio_id, name) VALUES (%s, %s)",
+                "INSERT INTO Portfolio (portfolio_id, name) VALUES (%s, %s) ON CONFLICT (portfolio_id) DO NOTHING",
                 (portfolio_id, name)
             )
-            print(f"Portfolio record with portfolio_id {portfolio_id} inserted successfully.")
+            self.conn.commit()
+            print(f"Portfolio record with portfolio_id {portfolio_id} processed successfully.")
         except Exception as e:
             print(f"Error inserting Portfolio record: {e}")
+            self.conn.rollback()
             raise
     
-    def insert_portfolios(self, portfolios: List[Tuple[int, str, str]]) -> None:
-        """Batch insert multiple records into the Portfolio table."""
+    def insert_portfolios(self, portfolios: List[Tuple[int, str]]) -> None:
+        """Batch insert multiple records into the Portfolio table, ignoring duplicates."""
         try:
             self.cursor.executemany(
-                "INSERT INTO Portfolio (portfolio_id, name, strategy_id) VALUES (%s, %s, %s)",
+                "INSERT INTO Portfolio (portfolio_id, name) VALUES (%s, %s) ON CONFLICT (portfolio_id) DO NOTHING",
                 portfolios
             )
-            print(f"{len(portfolios)} portfolio records inserted successfully.")
+            self.conn.commit()
+            print(f"{len(portfolios)} portfolio records processed successfully.")
         except Exception as e:
             print(f"Error batch inserting Portfolio records: {e}")
+            self.conn.rollback()
             raise
     
     # Strategy table functions
     def insert_strategy(self, strategy_id: str, direction: str, symbol: str, portfolio_id: int) -> None:
-        """Insert a record into the Strategy table."""
+        """Insert a record into the Strategy table, ignoring duplicates."""
         try:
             self.cursor.execute(
-                "INSERT INTO Strategy (strategy_id, direction, symbol, portfolio_id) VALUES (%s, %s, %s, %s)",
+                "INSERT INTO Strategy (strategy_id, direction, symbol, portfolio_id) VALUES (%s, %s, %s, %s) ON CONFLICT (strategy_id) DO NOTHING",
                 (strategy_id, direction, symbol, portfolio_id)
             )
-            print(f"Strategy record with strategy_id {strategy_id} inserted successfully.")
+            self.conn.commit()
+            print(f"Strategy record with strategy_id {strategy_id} processed successfully.")
         except Exception as e:
             print(f"Error inserting Strategy record: {e}")
+            self.conn.rollback()
             raise
     
     def insert_strategies(self, strategies: List[Tuple[str, str, str]]) -> None:
-        """Batch insert multiple records into the Strategy table."""
+        """Batch insert multiple records into the Strategy table, ignoring duplicates."""
         try:
             self.cursor.executemany(
-                "INSERT INTO Strategy (strategy_id, direction, symbol) VALUES (%s, %s, %s)",
+                "INSERT INTO Strategy (strategy_id, direction, symbol) VALUES (%s, %s, %s) ON CONFLICT (strategy_id) DO NOTHING",
                 strategies
             )
-            print(f"{len(strategies)} strategy records inserted successfully.")
+            self.conn.commit()
+            print(f"{len(strategies)} strategy records processed successfully.")
         except Exception as e:
             print(f"Error batch inserting Strategy records: {e}")
+            self.conn.rollback()
             raise
     
     # Order table functions
     def insert_order(self, order_id: str, time: datetime, strategy_id: str, 
                     price: float, qty: float, side: str, symbol: str) -> None:
-        """Insert a record into the Order table."""
+        """Insert a record into the Order table, ignoring duplicates."""
         try:
             self.cursor.execute(
                 """INSERT INTO "Order" (order_id, time, strategy_id, price, qty, side, symbol) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (order_id) DO NOTHING""",
                 (order_id, time, strategy_id, price, qty, side, symbol)
             )
-            print(f"Order record with order_id {order_id} inserted successfully.")
+            self.conn.commit()
+            print(f"Order record with order_id {order_id} processed successfully.")
         except Exception as e:
             print(f"Error inserting Order record: {e}")
+            self.conn.rollback()
             raise
     
     def insert_orders(self, orders: List[Tuple[str, datetime, str, float, float, str, str]]) -> None:
-        """Batch insert multiple records into the Order table."""
+        """Batch insert multiple records into the Order table, ignoring duplicates."""
         try:
             self.cursor.executemany(
                 """INSERT INTO "Order" (order_id, time, strategy_id, price, qty, side, symbol) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (order_id) DO NOTHING""",
                 orders
             )
-            print(f"{len(orders)} order records inserted successfully.")
+            self.conn.commit()
+            print(f"{len(orders)} order records processed successfully.")
         except Exception as e:
             print(f"Error batch inserting Order records: {e}")
+            self.conn.rollback()
             raise
     
     # Log table functions
     def insert_log(self, log_id: int, time: datetime, message: str, portfolio_id: int) -> None:
-        """Insert a record into the Log table."""
+        """Insert a record into the Log table, ignoring duplicates."""
         try:
             self.cursor.execute(
-                "INSERT INTO Log (log_id, time, message, portfolio_id) VALUES (%s, %s, %s, %s)",
+                "INSERT INTO Log (log_id, time, message, portfolio_id) VALUES (%s, %s, %s, %s) ON CONFLICT (log_id) DO NOTHING",
                 (log_id, time, message, portfolio_id)
             )
-            print(f"Log record with log_id {log_id} inserted successfully.")
+            self.conn.commit()
+            print(f"Log record with log_id {log_id} processed successfully.")
         except Exception as e:
             print(f"Error inserting Log record: {e}")
+            self.conn.rollback()
             raise
     
     def insert_logs(self, logs: List[Tuple[int, datetime, str, int]]) -> None:
-        """Batch insert multiple records into the Log table."""
+        """Batch insert multiple records into the Log table, ignoring duplicates."""
         try:
             self.cursor.executemany(
-                "INSERT INTO Log (log_id, time, message, portfolio_id) VALUES (%s, %s, %s, %s)",
+                "INSERT INTO Log (log_id, time, message, portfolio_id) VALUES (%s, %s, %s, %s) ON CONFLICT (log_id) DO NOTHING",
                 logs
             )
-            print(f"{len(logs)} log records inserted successfully.")
+            self.conn.commit()
+            print(f"{len(logs)} log records processed successfully.")
         except Exception as e:
             print(f"Error batch inserting Log records: {e}")
+            self.conn.rollback()
             raise
     
     # Portfolio_Snapshot table functions
     def insert_portfolio_snapshot(self, portfolio_id: float, time: datetime, fund: float, 
                                 leverage: float, position: float, order_value: float) -> None:
-        """Insert a record into the Portfolio_Snapshot table."""
+        """Insert a record into the Portfolio_Snapshot table, ignoring duplicates."""
         try:
             self.cursor.execute(
                 """INSERT INTO Portfolio_Snapshot 
                 (portfolio_id, time, fund, leverage, position, order_value) 
-                VALUES (%s, %s, %s, %s, %s, %s)""",
+                VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (portfolio_id, time) DO NOTHING""",
                 (portfolio_id, time, fund, leverage, position, order_value)
             )
-            print(f"Portfolio_Snapshot record for portfolio_id {portfolio_id} at {time} inserted successfully.")
+            self.conn.commit()
+            print(f"Portfolio_Snapshot record for portfolio_id {portfolio_id} at {time} processed successfully.")
         except Exception as e:
             print(f"Error inserting Portfolio_Snapshot record: {e}")
+            self.conn.rollback()
             raise
     
     def insert_portfolio_snapshots(self, snapshots: List[Tuple[float, datetime, float, float, float, float]]) -> None:
-        """Batch insert multiple records into the Portfolio_Snapshot table."""
+        """Batch insert multiple records into the Portfolio_Snapshot table, ignoring duplicates."""
         try:
             self.cursor.executemany(
                 """INSERT INTO Portfolio_Snapshot 
                 (portfolio_id, time, fund, leverage, position, order_value) 
-                VALUES (%s, %s, %s, %s, %s, %s)""",
+                VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (portfolio_id, time) DO NOTHING""",
                 snapshots
             )
-            print(f"{len(snapshots)} portfolio snapshot records inserted successfully.")
+            self.conn.commit()
+            print(f"{len(snapshots)} portfolio snapshot records processed successfully.")
         except Exception as e:
             print(f"Error batch inserting Portfolio_Snapshot records: {e}")
+            self.conn.rollback()
             raise
     
     # Trade table functions
@@ -199,7 +221,8 @@ class DatabaseManager:
             self.cursor.execute(
                 """INSERT INTO Trade 
                 (trade_id, time, strategy_id, price, qty, side, symbol, volume) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (trade_id) DO NOTHING""",
                 (trade_id, time, strategy_id, price, qty, side, symbol, volume)
             )
             print(f"Trade record with trade_id {trade_id} inserted successfully.")
@@ -208,17 +231,20 @@ class DatabaseManager:
             raise
     
     def insert_trades(self, trades: List[Tuple[str, datetime, str, float, float, str, str, float]]) -> None:
-        """Batch insert multiple records into the Trade table."""
+        """Batch insert multiple records into the Trade table, ignoring duplicates."""
         try:
             self.cursor.executemany(
                 """INSERT INTO Trade 
                 (trade_id, time, strategy_id, price, qty, side, symbol, volume) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (trade_id) DO NOTHING""",
                 trades
             )
-            print(f"{len(trades)} trade records inserted successfully.")
+            self.conn.commit()
+            print(f"{len(trades)} trade records processed successfully.")
         except Exception as e:
             print(f"Error batch inserting Trade records: {e}")
+            self.conn.rollback()
             raise
     
     def get_table_data(self, table_name: str, columns: List[str] = None, 
@@ -415,7 +441,7 @@ if __name__ == "__main__":
         # Connect to the database
         db_manager.connect()
         # Drop all existing tables
-        #drop_all_tables(db_manager)
+        drop_all_tables(db_manager)
         #Create the database schema from file
         create_database_schema_from_file(db_manager, 'scheme')
         db_manager.insert_system(1718693033751000)
@@ -423,7 +449,9 @@ if __name__ == "__main__":
         trades, unique_strategy_ids = parse_trades_log("../Maker-Trade-System/build/logs/Trades.log")
         for strategy_id, strategy_info in unique_strategy_ids.items():
             db_manager.insert_strategy(strategy_id, strategy_info['direction'], strategy_info['symbol'], 1718693033751000)
-        #db_manager.insert_trades(trades)
+        
+        for trade in trades[:500]:
+            db_manager.insert_trade(trade[0], trade[1], trade[2], trade[3], trade[4], trade[5], trade[6], trade[7])
         
         # # Insert a strategy record
         # db_manager.insert_strategy("strat1", "long", "AAPL")
