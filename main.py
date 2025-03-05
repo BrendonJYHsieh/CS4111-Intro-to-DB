@@ -14,8 +14,8 @@ if __name__ == "__main__":
     try:
         # Connect to the database
         db_manager.connect()
-        portfolios = db_manager.get_table_data("Portfolio")
-        print(portfolios)
+        data = db_manager.get_table_data("Strategy",condition="portfolio_id = 1718693033751000")
+        print(data)
     except Exception as e:
         print(f"Error: {e}")
     finally:

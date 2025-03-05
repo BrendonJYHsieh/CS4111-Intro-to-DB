@@ -1,64 +1,82 @@
 -- System table
 CREATE TABLE System (
-    portfolio_id INT PRIMARY KEY
+    portfolio_id BIGINT PRIMARY KEY
 );
 
 -- Portfolio table
 CREATE TABLE Portfolio (
-    portfolio_id INT PRIMARY KEY,
-    name VARCHAR(255),
-    strategy_id VARCHAR(255),
-    FOREIGN KEY (portfolio_id) REFERENCES System(portfolio_id)
+    portfolio_id BIGINT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    FOREIGN KEY (portfolio_id) REFERENCES System(portfolio_id),
+    CONSTRAINT portfolio_name_unique UNIQUE (name),
+    CONSTRAINT portfolio_name_check CHECK (length(name) > 0)
 );
 
 -- Strategy table
 CREATE TABLE Strategy (
     strategy_id VARCHAR(255) PRIMARY KEY,
-    direction VARCHAR(255),
-    symbol VARCHAR(255)
+    direction VARCHAR(255) NOT NULL,
+    symbol VARCHAR(255) NOT NULL,
+    portfolio_id BIGINT NOT NULL,
+    FOREIGN KEY (portfolio_id) REFERENCES Portfolio(portfolio_id),
+    CONSTRAINT strategy_direction_check CHECK (direction IN ('long', 'short', 'neutral')),
+    CONSTRAINT strategy_symbol_check CHECK (length(symbol) > 0)
 );
+
 
 -- Order table
 CREATE TABLE "Order" (
     order_id VARCHAR(255) PRIMARY KEY,
-    time TIMESTAMP,
-    strategy_id VARCHAR(255),
-    price DOUBLE PRECISION,
-    qty DOUBLE PRECISION,
-    side VARCHAR(255),
-    symbol VARCHAR(255),
-    FOREIGN KEY (strategy_id) REFERENCES Strategy(strategy_id)
+    time TIMESTAMP NOT NULL,
+    strategy_id VARCHAR(255) NOT NULL,
+    price DOUBLE PRECISION NOT NULL,
+    qty DOUBLE PRECISION NOT NULL,
+    side VARCHAR(255) NOT NULL,
+    symbol VARCHAR(255) NOT NULL,
+    FOREIGN KEY (strategy_id) REFERENCES Strategy(strategy_id),
+    CONSTRAINT order_price_check CHECK (price > 0),
+    CONSTRAINT order_qty_check CHECK (qty > 0),
+    CONSTRAINT order_side_check CHECK (side IN ('buy', 'sell'))
 );
 
 -- Log table
 CREATE TABLE Log (
     log_id INT PRIMARY KEY,
-    time TIMESTAMP,
-    message VARCHAR(255),
-    portfolio_id INT,
-    FOREIGN KEY (portfolio_id) REFERENCES Portfolio(portfolio_id)
+    time TIMESTAMP NOT NULL,
+    message VARCHAR(255) NOT NULL,
+    portfolio_id BIGINT NOT NULL,
+    FOREIGN KEY (portfolio_id) REFERENCES Portfolio(portfolio_id),
+    CONSTRAINT log_message_check CHECK (length(message) > 0)
 );
 
 -- Portfolio Snapshot table
 CREATE TABLE Portfolio_Snapshot (
-    portfolio_id DOUBLE PRECISION,
+    portfolio_id BIGINT,
     time TIMESTAMP,
-    fund DOUBLE PRECISION,
-    leverage DOUBLE PRECISION,
-    position DOUBLE PRECISION,
-    order_value DOUBLE PRECISION,
-    PRIMARY KEY (portfolio_id, time)
+    fund DOUBLE PRECISION NOT NULL,
+    leverage DOUBLE PRECISION NOT NULL,
+    position DOUBLE PRECISION NOT NULL,
+    order_value DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (portfolio_id, time),
+    CONSTRAINT portfolio_snapshot_fund_check CHECK (fund >= 0),
+    CONSTRAINT portfolio_snapshot_leverage_check CHECK (leverage >= 0),
+    CONSTRAINT portfolio_snapshot_order_value_check CHECK (order_value >= 0)
 );
 
 -- Trade table
 CREATE TABLE Trade (
     trade_id VARCHAR(255) PRIMARY KEY,
-    time TIMESTAMP,
-    strategy_id VARCHAR(255),
-    price DOUBLE PRECISION,
-    qty DOUBLE PRECISION,
-    side VARCHAR(255),
-    symbol VARCHAR(255),
-    volume DOUBLE PRECISION,
-    FOREIGN KEY (strategy_id) REFERENCES Strategy(strategy_id)
+    time TIMESTAMP NOT NULL,
+    strategy_id VARCHAR(255) NOT NULL,
+    price DOUBLE PRECISION NOT NULL,
+    qty DOUBLE PRECISION NOT NULL,
+    side VARCHAR(255) NOT NULL,
+    symbol VARCHAR(255) NOT NULL,
+    volume DOUBLE PRECISION NOT NULL,
+    FOREIGN KEY (strategy_id) REFERENCES Strategy(strategy_id),
+    CONSTRAINT trade_price_check CHECK (price > 0),
+    CONSTRAINT trade_qty_check CHECK (qty > 0),
+    CONSTRAINT trade_volume_check CHECK (volume > 0),
+    CONSTRAINT trade_side_check CHECK (side IN ('buy', 'sell')),
+    CONSTRAINT trade_volume_equals_price_qty CHECK (abs(volume - (price * qty)) < 0.01)
 );
