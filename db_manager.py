@@ -374,6 +374,125 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error retrieving strategy daily average trade frequency: {e}")
             raise
+
+    def insert_portfolio_snapshots_from_csv(self, csv_file_path: str, portfolio_id: int) -> None:
+        """
+        Parse the combined_history.csv file and insert Portfolio_Snapshot records into the database.
+        
+        Args:
+            csv_file_path: Path to the combined_history.csv file
+            portfolio_id: The portfolio ID to associate with these snapshots
+            
+        Returns:
+            None
+        """
+        try:
+            import csv
+            from datetime import datetime
+            
+            snapshots = []
+            
+            with open(csv_file_path, 'r') as file:
+                # Skip the header row
+                csv_reader = csv.reader(file)
+                header = next(csv_reader)
+                
+                # Process each row
+                for row in csv_reader:
+                    if len(row) >= 3:  # Ensure we have Timestamp, Equity, PositionValue
+                        try:
+                            # Parse timestamp (convert from milliseconds to datetime)
+                            timestamp_ms = int(row[0])
+                            time = datetime.fromtimestamp(timestamp_ms / 1000)
+                            
+                            # Parse equity (fund) and position value
+                            equity = float(row[1])
+                            position_value = float(row[2])
+                            
+                            # Calculate leverage as position_value / equity
+                            # Avoid division by zero
+                            leverage = 0.0
+                            if equity > 0:
+                                leverage = position_value / equity
+                            
+                            # Create snapshot tuple with order_value set to 0
+                            snapshot = (
+                                portfolio_id,
+                                time,
+                                equity,  # fund = equity
+                                leverage,
+                                position_value,
+                                0.0  # order_value set to 0
+                            )
+                            
+                            snapshots.append(snapshot)
+                            
+                        except (ValueError, IndexError) as e:
+                            print(f"Error parsing row {row}: {e}")
+                            continue
+            
+            # Insert the snapshots in batches
+            if snapshots:
+                batch_size = 1000
+                for i in range(0, len(snapshots), batch_size):
+                    batch = snapshots[i:i+batch_size]
+                    self.insert_portfolio_snapshots(batch)
+                
+                print(f"Successfully inserted {len(snapshots)} portfolio snapshots from {csv_file_path}")
+            else:
+                print("No valid portfolio snapshots found in the CSV file")
+            
+        except Exception as e:
+            print(f"Error processing portfolio snapshots from CSV: {e}")
+            raise
+
+    def get_portfolio_performance(self, portfolio_id: int) -> List[Tuple]:
+        """
+        Get performance metrics for a portfolio based on snapshots.
+        
+        Args:
+            portfolio_id: The ID of the portfolio to analyze
+            
+        Returns:
+            A list of tuples containing performance metrics
+        """
+        try:
+            query = """
+                WITH daily_snapshots AS (
+                    SELECT 
+                        DATE(time) AS date,
+                        FIRST_VALUE(fund) OVER (PARTITION BY DATE(time) ORDER BY time) AS open_fund,
+                        LAST_VALUE(fund) OVER (PARTITION BY DATE(time) ORDER BY time 
+                                              RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS close_fund,
+                        MIN(fund) OVER (PARTITION BY DATE(time)) AS min_fund,
+                        MAX(fund) OVER (PARTITION BY DATE(time)) AS max_fund,
+                        AVG(leverage) OVER (PARTITION BY DATE(time)) AS avg_leverage,
+                        MAX(leverage) OVER (PARTITION BY DATE(time)) AS max_leverage
+                    FROM Portfolio_Snapshot
+                    WHERE portfolio_id = %s
+                )
+                SELECT DISTINCT
+                    date,
+                    open_fund,
+                    close_fund,
+                    min_fund,
+                    max_fund,
+                    avg_leverage,
+                    max_leverage,
+                    ROUND(((close_fund - open_fund) / NULLIF(open_fund, 0)) * 100, 2) AS daily_return_pct
+                FROM daily_snapshots
+                ORDER BY date
+            """
+            
+            self.cursor.execute(query, (portfolio_id,))
+            results = self.cursor.fetchall()
+            print(f"Retrieved performance data for portfolio {portfolio_id} over {len(results)} days")
+            return results
+            
+        except Exception as e:
+            print(f"Error retrieving portfolio performance: {e}")
+            raise
+
 def create_database_schema_from_file(db_manager, schema_file_path):
     """
     Creates the database schema by reading SQL commands from a file.
