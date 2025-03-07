@@ -479,7 +479,7 @@ class DatabaseManager:
                     max_fund,
                     avg_leverage,
                     max_leverage,
-                    ROUND(((close_fund - open_fund) / NULLIF(open_fund, 0)) * 100, 2) AS daily_return_pct
+                    ((close_fund - open_fund) / NULLIF(open_fund, 0)) * 100 AS daily_return_pct
                 FROM daily_snapshots
                 ORDER BY date
             """
@@ -491,6 +491,134 @@ class DatabaseManager:
             
         except Exception as e:
             print(f"Error retrieving portfolio performance: {e}")
+            raise
+
+    def generate_and_insert_logs(self, portfolio_id: int, num_logs: int = 100) -> None:
+        """
+        Generate and insert sample logs into the Log table.
+        
+        Args:
+            portfolio_id: The portfolio ID to associate with these logs
+            num_logs: Number of log entries to generate (default: 100)
+            
+        Returns:
+            None
+        """
+        try:
+            import random
+            from datetime import datetime, timedelta
+            
+            # Define possible log message templates
+            log_templates = [
+                "Portfolio {} initialized with initial fund {}",
+                "Strategy {} created for symbol {}",
+                "Order {} placed: {} {} of {} at price {}",
+                "Trade {} executed: {} {} of {} at price {}",
+                "Position for {} updated to {} shares",
+                "Portfolio leverage changed to {}",
+                "Risk limit triggered for strategy {}",
+                "Daily P&L for strategy {}: {}",
+                "Market data connection {} for symbol {}",
+                "System status: {}",
+                "Portfolio rebalance completed, new weights: {}",
+                "Margin call warning: current margin level {}%",
+                "Strategy {} stopped due to {}",
+                "New market data provider connected: {}",
+                "Configuration updated: {}"
+            ]
+            
+            # Define possible values for template placeholders
+            symbols = ["BTC", "ETH", "SOL", "AVAX", "MATIC", "DOT", "ADA"]
+            strategy_ids = [f"strat_{i}" for i in range(1, 11)]
+            order_ids = [f"ord_{i}" for i in range(1, 101)]
+            trade_ids = [f"trade_{i}" for i in range(1, 101)]
+            connection_status = ["established", "lost", "reconnected"]
+            system_status = ["normal", "warning", "critical", "maintenance"]
+            stop_reasons = ["risk limit reached", "performance threshold", "manual intervention", "technical issue"]
+            providers = ["Binance", "Coinbase", "Kraken", "FTX", "Huobi"]
+            config_params = ["risk_threshold", "max_leverage", "rebalance_frequency", "order_size_limit"]
+            
+            logs = []
+            
+            # Generate random logs
+            start_time = datetime.now() - timedelta(days=30)
+            end_time = datetime.now()
+            
+            for i in range(num_logs):
+                # Generate random timestamp within the last 30 days
+                random_seconds = random.randint(0, int((end_time - start_time).total_seconds()))
+                log_time = start_time + timedelta(seconds=random_seconds)
+                
+                # Select random template
+                template = random.choice(log_templates)
+                
+                # Fill in template with random values
+                if "{}" in template:
+                    if "initialized" in template:
+                        message = template.format(portfolio_id, f"${random.uniform(10000, 1000000):.2f}")
+                    elif "Strategy" in template and "created" in template:
+                        message = template.format(random.choice(strategy_ids), random.choice(symbols))
+                    elif "Order" in template and "placed" in template:
+                        message = template.format(
+                            random.choice(order_ids),
+                            random.choice(["buy", "sell"]),
+                            random.uniform(0.1, 10),
+                            random.choice(symbols),
+                            random.uniform(100, 50000)
+                        )
+                    elif "Trade" in template and "executed" in template:
+                        message = template.format(
+                            random.choice(trade_ids),
+                            random.choice(["bought", "sold"]),
+                            random.uniform(0.1, 10),
+                            random.choice(symbols),
+                            random.uniform(100, 50000)
+                        )
+                    elif "Position" in template:
+                        message = template.format(random.choice(symbols), random.uniform(-10, 10))
+                    elif "leverage" in template:
+                        message = template.format(random.uniform(1, 5))
+                    elif "Risk limit" in template:
+                        message = template.format(random.choice(strategy_ids))
+                    elif "P&L" in template:
+                        message = template.format(
+                            random.choice(strategy_ids),
+                            f"${random.uniform(-5000, 5000):.2f}"
+                        )
+                    elif "Market data connection" in template:
+                        message = template.format(random.choice(connection_status), random.choice(symbols))
+                    elif "System status" in template:
+                        message = template.format(random.choice(system_status))
+                    elif "rebalance" in template:
+                        weights = {sym: f"{random.uniform(0, 0.5):.2f}" for sym in random.sample(symbols, 3)}
+                        message = template.format(str(weights))
+                    elif "Margin call" in template:
+                        message = template.format(random.uniform(50, 150))
+                    elif "stopped" in template:
+                        message = template.format(random.choice(strategy_ids), random.choice(stop_reasons))
+                    elif "provider" in template:
+                        message = template.format(random.choice(providers))
+                    elif "Configuration" in template:
+                        message = template.format(f"{random.choice(config_params)}={random.uniform(0.1, 10):.2f}")
+                    else:
+                        message = template
+                else:
+                    message = template
+                
+                # Create log entry
+                logs.append((i + 1, log_time, message, portfolio_id))
+            
+            # Insert logs in batches
+            batch_size = 50
+            for i in range(0, len(logs), batch_size):
+                batch = logs[i:i+batch_size]
+                self.insert_logs(batch)
+            
+            print(f"Successfully generated and inserted {len(logs)} log entries")
+            
+        except Exception as e:
+            print(f"Error generating and inserting logs: {e}")
+            self.conn.rollback()
             raise
 
 def create_database_schema_from_file(db_manager, schema_file_path):
