@@ -26,10 +26,10 @@ if __name__ == "__main__":
         #     print(f"Strategy ID: {strategy[0]}, Symbol: {strategy[1]}, Direction: {strategy[2]}, Total Trades: {strategy[3]}, Trading Days: {strategy[4]}, Avg Trades per Day: {strategy[5]}")
         
         # Insert portfolio snapshots from CSV
-        # db_manager.insert_portfolio_snapshots_from_csv(
-        #     "../Maker-Trade-System/dashboard/combined_history.csv", 
-        #     portfolio_id
-        # )
+        db_manager.insert_portfolio_snapshots_from_csv(
+            "../Maker-Trade-System/dashboard/combined_history_copy.csv", 
+            portfolio_id
+        )
         
         # Get portfolio performance
         portfolio_performance = db_manager.get_portfolio_performance(portfolio_id)
