@@ -60,7 +60,6 @@ CREATE TABLE Portfolio_Snapshot (
     PRIMARY KEY (portfolio_id, time),
     CONSTRAINT portfolio_snapshot_fund_check CHECK (fund >= 0),
     CONSTRAINT portfolio_snapshot_leverage_check CHECK (leverage >= 0),
-    CONSTRAINT portfolio_snapshot_order_value_check CHECK (order_value >= 0)
 );
 
 -- Trade table
