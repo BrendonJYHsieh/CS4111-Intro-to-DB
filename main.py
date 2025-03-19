@@ -20,16 +20,16 @@ if __name__ == "__main__":
         #     print(f"Strategy ID: {volume[0]}, Total Volume: {volume[1]}, Total Trades: {volume[2]}")
         # # Get daily average trade frequency for each strategy
         
-        # daily_avg_trade_freq = db_manager.get_strategy_daily_average_trade_frequency(portfolio_id)
-        # print("\nDaily Average Trade Frequency:")
-        # for strategy in daily_avg_trade_freq:
-        #     print(f"Strategy ID: {strategy[0]}, Symbol: {strategy[1]}, Direction: {strategy[2]}, Total Trades: {strategy[3]}, Trading Days: {strategy[4]}, Avg Trades per Day: {strategy[5]}")
+        daily_avg_trade_freq = db_manager.get_strategy_daily_average_trade_frequency(portfolio_id)
+        print("\nDaily Average Trade Frequency:")
+        for strategy in daily_avg_trade_freq:
+            print(f"Strategy ID: {strategy[0]}, Symbol: {strategy[1]}, Direction: {strategy[2]}, Total Trades: {strategy[3]}, Trading Days: {strategy[4]}, Avg Trades per Day: {strategy[5]}")
         
         # Insert portfolio snapshots from CSV
-        db_manager.insert_portfolio_snapshots_from_csv(
-            "../Maker-Trade-System/dashboard/combined_history_copy.csv", 
-            portfolio_id
-        )
+        # db_manager.insert_portfolio_snapshots_from_csv(
+        #     "../Maker-Trade-System/dashboard/combined_history_copy.csv", 
+        #     portfolio_id
+        # )
         
         # Get portfolio performance
         portfolio_performance = db_manager.get_portfolio_performance(portfolio_id)

@@ -364,6 +364,8 @@ class DatabaseManager:
             query += " GROUP BY s.strategy_id, s.symbol, s.direction"
             query += " ORDER BY avg_trades_per_day DESC"
             
+            print(query)
+            
             # Execute the query
             self.cursor.execute(query, params)
             
@@ -483,7 +485,6 @@ class DatabaseManager:
                 FROM daily_snapshots
                 ORDER BY date
             """
-            
             self.cursor.execute(query, (portfolio_id,))
             results = self.cursor.fetchall()
             print(f"Retrieved performance data for portfolio {portfolio_id} over {len(results)} days")

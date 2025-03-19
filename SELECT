@@ -1,0 +1,60 @@
+# Query 1: Get the total volume and trade count for each strategy
+SELECT 
+    s.strategy_id,
+    SUM(t.volume) AS total_volume,
+    COUNT(t.trade_id) AS trade_count
+FROM 
+    Strategy s
+JOIN 
+    Trade t ON s.strategy_id = t.strategy_id
+WHERE 
+    s.portfolio_id = 1718693033751000
+GROUP BY 
+    s.strategy_id
+ORDER BY 
+    total_volume DESC
+
+# Query 2: This query creates daily snapshots of portfolio performance, calculating opening and closing fund values, daily highs and lows, leverage metrics, and daily return percentages. It provides a comprehensive day-by-day view of portfolio 1718693033751000's performance and risk exposure over time.
+WITH daily_snapshots AS (
+	SELECT 
+		DATE(time) AS date,
+		FIRST_VALUE(fund) OVER (PARTITION BY DATE(time) ORDER BY time) AS open_fund,
+		LAST_VALUE(fund) OVER (PARTITION BY DATE(time) ORDER BY time 
+							  RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS close_fund,
+		MIN(fund) OVER (PARTITION BY DATE(time)) AS min_fund,
+		MAX(fund) OVER (PARTITION BY DATE(time)) AS max_fund,
+		AVG(leverage) OVER (PARTITION BY DATE(time)) AS avg_leverage,
+		MAX(leverage) OVER (PARTITION BY DATE(time)) AS max_leverage
+	FROM Portfolio_Snapshot
+	WHERE portfolio_id = 1718693033751000
+)
+SELECT DISTINCT
+	date,
+	open_fund,
+	close_fund,
+	min_fund,
+	max_fund,
+	avg_leverage,
+	max_leverage,
+	((close_fund - open_fund) / NULLIF(open_fund, 0)) * 100 AS daily_return_pct
+FROM daily_snapshots
+ORDER BY date
+
+
+# Query 3: This query calculates the average trade frequency per day for each strategy in portfolio 1718693033751000. It provides insights into the trading activity and consistency of each strategy over time.
+SELECT 
+    s.strategy_id,
+    s.symbol,
+    s.direction,
+    COUNT(t.trade_id) AS total_trades,
+    COUNT(DISTINCT DATE(t.time)) AS trading_days,
+    ROUND(COUNT(t.trade_id)::numeric / 
+        NULLIF(COUNT(DISTINCT DATE(t.time)), 0)::numeric, 2) AS avg_trades_per_day,
+    MIN(DATE(t.time)) AS first_trading_day,
+    MAX(DATE(t.time)) AS last_trading_day
+FROM Strategy s
+JOIN Trade t ON s.strategy_id = t.strategy_id
+WHERE 1=1
+AND s.portfolio_id = 1718693033751000
+GROUP BY s.strategy_id, s.symbol, s.direction 
+ORDER BY avg_trades_per_day DESC
