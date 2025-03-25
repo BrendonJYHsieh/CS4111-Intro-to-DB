@@ -20,10 +20,10 @@ if __name__ == "__main__":
         #     print(f"Strategy ID: {volume[0]}, Total Volume: {volume[1]}, Total Trades: {volume[2]}")
         # # Get daily average trade frequency for each strategy
         
-        daily_avg_trade_freq = db_manager.get_strategy_daily_average_trade_frequency(portfolio_id)
-        print("\nDaily Average Trade Frequency:")
-        for strategy in daily_avg_trade_freq:
-            print(f"Strategy ID: {strategy[0]}, Symbol: {strategy[1]}, Direction: {strategy[2]}, Total Trades: {strategy[3]}, Trading Days: {strategy[4]}, Avg Trades per Day: {strategy[5]}")
+        # daily_avg_trade_freq = db_manager.get_strategy_daily_average_trade_frequency(portfolio_id)
+        # print("\nDaily Average Trade Frequency:")
+        # for strategy in daily_avg_trade_freq:
+        #     print(f"Strategy ID: {strategy[0]}, Symbol: {strategy[1]}, Direction: {strategy[2]}, Total Trades: {strategy[3]}, Trading Days: {strategy[4]}, Avg Trades per Day: {strategy[5]}")
         
         # Insert portfolio snapshots from CSV
         # db_manager.insert_portfolio_snapshots_from_csv(
@@ -32,10 +32,10 @@ if __name__ == "__main__":
         # )
         
         # Get portfolio performance
-        portfolio_performance = db_manager.get_portfolio_performance(portfolio_id)
-        print("\nPortfolio Performance:")
-        for day in portfolio_performance:
-            print(f"Date: {day[0]}, Open Fund: {day[1]}, Close Fund: {day[2]}, Min Fund: {day[3]}, Max Fund: {day[4]}, Avg Leverage: {day[5]}, Max Leverage: {day[6]}, Daily Return %: {day[7]}")
+        # portfolio_performance = db_manager.get_portfolio_performance(portfolio_id)
+        # print("\nPortfolio Performance:")
+        # for day in portfolio_performance:
+        #     print(f"Date: {day[0]}, Open Fund: {day[1]}, Close Fund: {day[2]}, Min Fund: {day[3]}, Max Fund: {day[4]}, Avg Leverage: {day[5]}, Max Leverage: {day[6]}, Daily Return %: {day[7]}")
         
         # Display some sample logs
         # db_manager.generate_and_insert_logs(portfolio_id, num_logs=200)
@@ -54,6 +54,7 @@ if __name__ == "__main__":
         #     print(f"\nShowing 20 of {len(sample_logs)} logs")
         # else:
         #     print("No logs available.")
+        
         
     except Exception as e:
         print(f"Error: {e}")

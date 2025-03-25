@@ -766,6 +766,108 @@ def drop_all_tables(db_manager):
         db_manager.rollback()
         raise
 
+def parse_orders_log(log_file_path: str) -> List[Tuple[str, datetime, str, float, float, str, str]]:
+    """
+    Parse the Orders.log file and convert it to the format needed for insert_orders.
+    
+    Args:
+        log_file_path: Path to the Orders.log file
+        
+    Returns:
+        List of tuples in the format (order_id, time, strategy_id, price, qty, side, symbol)
+    """
+    orders = []
+    processed_orders = set()  # To track already processed orders
+    
+    try:
+        with open(log_file_path, 'r') as file:
+            unique_strategy_ids = {}
+            for line in file:
+                # Extract the JSON part from the log line
+                match = re.search(r'Received data: (\{.*\})', line)
+                if match:
+                    json_data = match.group(1)
+                    try:
+                        # Parse the JSON data
+                        order_data = json.loads(json_data)
+                        
+                        # Extract the data field which contains the order details
+                        data = order_data.get('data', {})
+                        
+                        # Get order_id
+                        order_id = data.get('orderId', '')
+                        
+                        # Skip if we've already processed this order (to avoid duplicates from status updates)
+                        # Only process NEW orders to avoid duplicates
+                        order_state = data.get('orderState', '')
+                        if order_id in processed_orders or order_state not in ['NEW', 'OPEN']:
+                            continue
+                        
+                        processed_orders.add(order_id)
+                        
+                        # Extract strategy_id from clientOrderId
+                        client_order_id = data.get('clientOrderId', '')
+                        # Extract the strategy part (before the timestamp)
+                        strategy_id = client_order_id[:-11] if len(client_order_id) > 11 else ''
+                        if strategy_id not in unique_strategy_ids:
+                            unique_strategy_ids[strategy_id] = {
+                                'direction': "long" if "LONG" in strategy_id else "short",
+                                'symbol': data.get('sym', '')
+                            }
+                        
+                        # Convert timestamp to datetime
+                        create_at = data.get('createAt', '')
+                        if create_at:
+                            # Convert milliseconds timestamp to datetime
+                            time = datetime.fromtimestamp(int(create_at) / 1000)
+                        else:
+                            # Use current time if createAt is not available
+                            time = datetime.now()
+                        
+                        # Extract other required fields
+                        price = float(data.get('limitPrice', 0))
+                        qty = float(data.get('orderQty', 0))
+                        side = data.get('side', '').lower()  # Convert to lowercase to match schema
+                        symbol = data.get('sym', '')
+                        
+                        # Create tuple in the required format
+                        order_tuple = (order_id, time, strategy_id, price, qty, side, symbol)
+                        orders.append(order_tuple)
+                        
+                    except json.JSONDecodeError as e:
+                        print(f"Error parsing JSON: {e}")
+                    except Exception as e:
+                        print(f"Error processing order data: {e}")
+    
+    except Exception as e:
+        print(f"Error reading log file: {e}")
+    
+    print(f"Successfully parsed {len(orders)} orders from log file")
+    return orders, unique_strategy_ids
+
+# Example usage:
+def process_orders(db_manager):
+    try:
+        # Parse the orders log file
+        orders, unique_strategy_ids = parse_orders_log("../Maker-Trade-System/build/logs_temp/Orders.log")
+        for strategy_id, strategy_info in unique_strategy_ids.items():
+            db_manager.insert_strategy(strategy_id, strategy_info['direction'], strategy_info['symbol'], 1718693033751000)
+        db_manager.insert_orders(orders[:1000])
+        
+        print(f"Successfully processed {len(orders)} orders")
+    except Exception as e:
+        print(f"Error processing orders: {e}")
+        
+def process_trades(db_manager):
+    try:
+        trades, unique_strategy_ids = parse_trades_log("../Maker-Trade-System/build/logs_temp/Trades.log")
+        for strategy_id, strategy_info in unique_strategy_ids.items():
+            db_manager.insert_strategy(strategy_id, strategy_info['direction'], strategy_info['symbol'], 1718693033751000)
+        db_manager.insert_trades(trades)
+        print(f"Successfully processed {len(trades)} trades")
+    except Exception as e:
+        print(f"Error processing trades: {e}")
+
 if __name__ == "__main__":
     # Initialize the database manager
     db_manager = DatabaseManager(
@@ -779,35 +881,14 @@ if __name__ == "__main__":
         # Connect to the database
         db_manager.connect()
 
-        # drop_all_tables(db_manager)
-        # create_database_schema_from_file(db_manager, 'scheme')
-        # db_manager.insert_system(1718693033751000)
-        # db_manager.insert_portfolio(1718693033751000, "RapidX Dev")
-        # trades, unique_strategy_ids = parse_trades_log("../Maker-Trade-System/build/logs/Trades.log")
-        # for strategy_id, strategy_info in unique_strategy_ids.items():
-        #     db_manager.insert_strategy(strategy_id, strategy_info['direction'], strategy_info['symbol'], 1718693033751000)
-        
-        trades, unique_strategy_ids = parse_trades_log("../Maker-Trade-System/build/logs/Trades.log")
-        for trade in trades:
-            db_manager.insert_trade(trade[0], trade[1], trade[2], trade[3], trade[4], trade[5], trade[6], trade[7])
-        
-        # # Insert a strategy record
-        # db_manager.insert_strategy("strat1", "long", "AAPL")
-        
-        # # Insert an order record
-        # db_manager.insert_order("ord1", datetime.now(), "strat1", 150.25, 10, "buy", "AAPL")
-        
-        # # Insert a log record
-        # db_manager.insert_log(1, datetime.now(), "Portfolio created", 1)
-        
-        # # Insert a portfolio snapshot record
-        # db_manager.insert_portfolio_snapshot(1.0, datetime.now(), 10000.0, 1.0, 1502.5, 1502.5)
-        
-        # # Insert a trade record
-        # db_manager.insert_trade("trade1", datetime.now(), "strat1", 150.25, 10, "buy", "AAPL", 1502.5)
-        
+        drop_all_tables(db_manager)
+        create_database_schema_from_file(db_manager, 'scheme')
+        db_manager.insert_system(1718693033751000)
+        db_manager.insert_portfolio(1718693033751000, "RapidX Dev")
+        process_trades(db_manager)
+        process_orders(db_manager)
 
-        #db_manager.insert_trades(trades)
+
         
         # Commit all changes
         db_manager.commit()
