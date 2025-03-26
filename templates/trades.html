@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trades</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">Trades</h1>
+        <a href="/" class="btn btn-primary mb-3">Back to Dashboard</a>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5>Trade List ({{ total_count }} total trades)</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Trade ID</th>
+                            <th>Time</th>
+                            <th>Strategy ID</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Side</th>
+                            <th>Symbol</th>
+                            <th>Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trade in trades %}
+                        <tr>
+                            <td>{{ trade.trade_id }}</td>
+                            <td>{{ trade.time }}</td>
+                            <td>{{ trade.strategy_id }}</td>
+                            <td>{{ trade.price }}</td>
+                            <td>{{ trade.qty }}</td>
+                            <td>{{ trade.side }}</td>
+                            <td>{{ trade.symbol }}</td>
+                            <td>{{ trade.volume }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <!-- Pagination -->
+                <nav>
+                    <ul class="pagination">
+                        {% if page > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('trades', page=page-1) }}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for i in range(page-2, page+3) if i > 0 and i <= total_pages %}
+                        <li class="page-item {% if i == page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('trades', page=i) }}">{{ i }}</a>
+                        </li>
+                        {% endfor %}
+                        
+                        {% if page < total_pages %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('trades', page=page+1) }}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+    
