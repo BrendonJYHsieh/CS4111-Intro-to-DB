@@ -1,9 +1,6 @@
 from db_manager import DatabaseManager
 
 if __name__ == "__main__":
-    client = Client("https://api.liquiditytech.com", ".env")
-    #result = client.get_orders()
-    #print(result)
     db_manager = DatabaseManager(
         host='34.148.223.31',
         database='proj1part2',
@@ -14,25 +11,6 @@ if __name__ == "__main__":
     try:
         # Connect to the database
         db_manager.connect()
-        # get all orders
-        orders = db_manager.get_table_data("Trade_Order")
-        
-        
-        # volumes = db_manager.get_strategy_volumes(portfolio_id)
-        # for volume in volumes:
-        #     print(f"Strategy ID: {volume[0]}, Total Volume: {volume[1]}, Total Trades: {volume[2]}")
-        # # Get daily average trade frequency for each strategy
-        
-        # daily_avg_trade_freq = db_manager.get_strategy_daily_average_trade_frequency(portfolio_id)
-        # print("\nDaily Average Trade Frequency:")
-        # for strategy in daily_avg_trade_freq:
-        #     print(f"Strategy ID: {strategy[0]}, Symbol: {strategy[1]}, Direction: {strategy[2]}, Total Trades: {strategy[3]}, Trading Days: {strategy[4]}, Avg Trades per Day: {strategy[5]}")
-        
-        # Insert portfolio snapshots from CSV
-        # db_manager.insert_portfolio_snapshots_from_csv(
-        #     "../Maker-Trade-System/dashboard/combined_history_copy.csv", 
-        #     portfolio_id
-        # )
         
         # Get portfolio performance
         # portfolio_performance = db_manager.get_portfolio_performance(portfolio_id)
@@ -41,7 +19,7 @@ if __name__ == "__main__":
         #     print(f"Date: {day[0]}, Open Fund: {day[1]}, Close Fund: {day[2]}, Min Fund: {day[3]}, Max Fund: {day[4]}, Avg Leverage: {day[5]}, Max Leverage: {day[6]}, Daily Return %: {day[7]}")
         
         # Display some sample logs
-        # db_manager.generate_and_insert_logs(portfolio_id, num_logs=200)
+        db_manager.generate_and_insert_logs(portfolio_id, num_logs=200)
         # print("\n=== Sample Log Entries ===")
         # sample_logs = db_manager.get_table_data("Log", columns=["log_id", "time", "message"], 
         #                                       condition="portfolio_id = %s", 

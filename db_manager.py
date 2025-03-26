@@ -559,7 +559,7 @@ class DatabaseManager:
                         message = template.format(portfolio_id, f"${random.uniform(10000, 1000000):.2f}")
                     elif "Strategy" in template and "created" in template:
                         message = template.format(random.choice(strategy_ids), random.choice(symbols))
-                    elif Trade_Order in template and "placed" in template:
+                    elif "Trade" in template and "placed" in template:
                         message = template.format(
                             random.choice(order_ids),
                             random.choice(["buy", "sell"]),
