@@ -24,8 +24,8 @@ CREATE TABLE Strategy (
 );
 
 
--- Order table
-CREATE TABLE "Order" (
+-- Trade_Order table
+CREATE TABLE Trade_Order (
     order_id VARCHAR(255) PRIMARY KEY,
     time TIMESTAMP NOT NULL,
     strategy_id VARCHAR(255) NOT NULL,

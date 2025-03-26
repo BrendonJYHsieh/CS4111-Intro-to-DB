@@ -124,7 +124,7 @@ class DatabaseManager:
         """Insert a record into the Order table, ignoring duplicates."""
         try:
             self.cursor.execute(
-                """INSERT INTO "Order" (order_id, time, strategy_id, price, qty, side, symbol) 
+                """INSERT INTO Trade_Order (order_id, time, strategy_id, price, qty, side, symbol) 
                 VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (order_id) DO NOTHING""",
                 (order_id, time, strategy_id, price, qty, side, symbol)
             )
@@ -139,7 +139,7 @@ class DatabaseManager:
         """Batch insert multiple records into the Order table, ignoring duplicates."""
         try:
             self.cursor.executemany(
-                """INSERT INTO "Order" (order_id, time, strategy_id, price, qty, side, symbol) 
+                """INSERT INTO Trade_Order (order_id, time, strategy_id, price, qty, side, symbol) 
                 VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (order_id) DO NOTHING""",
                 orders
             )
@@ -559,7 +559,7 @@ class DatabaseManager:
                         message = template.format(portfolio_id, f"${random.uniform(10000, 1000000):.2f}")
                     elif "Strategy" in template and "created" in template:
                         message = template.format(random.choice(strategy_ids), random.choice(symbols))
-                    elif "Order" in template and "placed" in template:
+                    elif Trade_Order in template and "placed" in template:
                         message = template.format(
                             random.choice(order_ids),
                             random.choice(["buy", "sell"]),
@@ -876,17 +876,23 @@ if __name__ == "__main__":
         user='ch3884',
         password='@Skills39'  # Replace with your actual password
     )
+    portfolio_id = 1718693033751000
     
     try:
         # Connect to the database
         db_manager.connect()
 
-        drop_all_tables(db_manager)
-        create_database_schema_from_file(db_manager, 'scheme')
-        db_manager.insert_system(1718693033751000)
-        db_manager.insert_portfolio(1718693033751000, "RapidX Dev")
-        process_trades(db_manager)
-        process_orders(db_manager)
+        # drop_all_tables(db_manager)
+        # create_database_schema_from_file(db_manager, 'scheme')
+        # db_manager.insert_system(1718693033751000)
+        # db_manager.insert_portfolio(1718693033751000, "RapidX Dev")
+        # process_trades(db_manager)
+        # process_orders(db_manager)
+        db_manager.insert_portfolio_snapshots_from_csv(
+            "../Maker-Trade-System/dashboard/combined_history_copy.csv", 
+            portfolio_id
+        )
+        
 
 
         

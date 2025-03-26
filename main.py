@@ -15,6 +15,10 @@ if __name__ == "__main__":
     try:
         # Connect to the database
         db_manager.connect()
+        # get all orders
+        orders = db_manager.get_table_data("Trade_Order")
+        
+        
         # volumes = db_manager.get_strategy_volumes(portfolio_id)
         # for volume in volumes:
         #     print(f"Strategy ID: {volume[0]}, Total Volume: {volume[1]}, Total Trades: {volume[2]}")
