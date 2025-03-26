@@ -1,4 +1,3 @@
-from rapidxClient import Client
 from db_manager import DatabaseManager
 
 if __name__ == "__main__":
@@ -64,5 +63,3 @@ if __name__ == "__main__":
         print(f"Error: {e}")
     finally:
         db_manager.disconnect()
-    # db_manager.create_table()
-    # db_manager.insert_data(client)
