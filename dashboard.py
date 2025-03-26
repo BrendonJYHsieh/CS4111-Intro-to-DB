@@ -22,10 +22,186 @@ DB_CONFIG = {
 # Create a database manager instance
 db_manager = DatabaseManager(**DB_CONFIG)
 
+def get_strategies(db_manager, limit=10):
+    """Get strategies from database"""
+    db_manager.cursor.execute("""
+        SELECT strategy_id, direction, symbol, portfolio_id 
+        FROM Strategy
+        ORDER BY strategy_id
+        LIMIT %s
+    """, (limit,))
+    
+    strategies = db_manager.cursor.fetchall()
+    
+    strategy_list = []
+    for s in strategies:
+        strategy_list.append({
+            'strategy_id': s[0],
+            'direction': s[1],
+            'symbol': s[2],
+            'portfolio_id': s[3]
+        })
+    
+    return strategy_list
+
+def get_orders(db_manager, limit=10):
+    """Get recent orders from database"""
+    db_manager.cursor.execute("""
+        SELECT order_id, time, strategy_id, price, qty, side, symbol
+        FROM Trade_Order
+        ORDER BY time DESC
+        LIMIT %s
+    """, (limit,))
+    
+    orders = db_manager.cursor.fetchall()
+    
+    order_list = []
+    for o in orders:
+        order_list.append({
+            'order_id': o[0],
+            'time': o[1],
+            'strategy_id': o[2],
+            'price': o[3],
+            'qty': o[4],
+            'side': o[5],
+            'symbol': o[6]
+        })
+    
+    return order_list
+
+def get_trades(db_manager, limit=10):
+    """Get recent trades from database"""
+    db_manager.cursor.execute("""
+        SELECT trade_id, time, strategy_id, price, qty, side, symbol, volume
+        FROM Trade
+        ORDER BY time DESC
+        LIMIT %s
+    """, (limit,))
+    
+    trades = db_manager.cursor.fetchall()
+    
+    trade_list = []
+    for t in trades:
+        trade_list.append({
+            'trade_id': t[0],
+            'time': t[1],
+            'strategy_id': t[2],
+            'price': t[3],
+            'qty': t[4],
+            'side': t[5],
+            'symbol': t[6],
+            'volume': t[7]
+        })
+    
+    return trade_list
+
+def get_logs(db_manager, limit=10):
+    """Get recent logs from database"""
+    db_manager.cursor.execute("""
+        SELECT log_id, time, message, portfolio_id
+        FROM Log
+        ORDER BY time DESC
+        LIMIT %s
+    """, (limit,))
+    
+    logs = db_manager.cursor.fetchall()
+    
+    log_list = []
+    for l in logs:
+        log_list.append({
+            'log_id': l[0],
+            'time': l[1],
+            'message': l[2],
+            'portfolio_id': l[3]
+        })
+    
+    return log_list
+
+def get_portfolio_snapshots(db_manager, portfolio_id, limit=10):
+    """Get recent portfolio snapshots from database"""
+    db_manager.cursor.execute("""
+        SELECT time, fund, leverage, position, order_value
+        FROM Portfolio_Snapshot
+        WHERE portfolio_id = %s
+        ORDER BY time DESC
+        LIMIT %s
+    """, (portfolio_id, limit))
+    
+    snapshots = db_manager.cursor.fetchall()
+    
+    snapshot_list = []
+    for s in snapshots:
+        snapshot_list.append({
+            'time': s[0],
+            'fund': s[1],
+            'leverage': s[2],
+            'position': s[3],
+            'order_value': s[4]
+        })
+    
+    return snapshot_list
+
+def generate_portfolio_graph(db_manager, portfolio_id):
+    """Generate portfolio performance graph"""
+    db_manager.cursor.execute("""
+        SELECT time, fund
+        FROM Portfolio_Snapshot
+        WHERE portfolio_id = %s
+        ORDER BY time
+    """, (portfolio_id,))
+    
+    snapshot_data = db_manager.cursor.fetchall()
+    
+    if not snapshot_data:
+        return None
+    
+    times = [row[0] for row in snapshot_data]
+    funds = [row[1] for row in snapshot_data]
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(times, funds)
+    plt.title('Portfolio Fund Over Time')
+    plt.xlabel('Time')
+    plt.ylabel('Fund Value')
+    plt.grid(True)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    
+    # Convert plot to base64 string
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    plot_data = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close()
+    
+    return plot_data
+
 @app.route('/')
 def index():
-    """Main dashboard page"""
-    return render_template('index.html')
+    """Main dashboard page showing all data together"""
+    db_manager.connect()
+    try:
+        # Default portfolio ID
+        portfolio_id = 1718693033751000
+        
+        # Get data using helper functions
+        strategies = get_strategies(db_manager)
+        orders = get_orders(db_manager)
+        trades = get_trades(db_manager)
+        logs = get_logs(db_manager)
+        snapshots = get_portfolio_snapshots(db_manager, portfolio_id)
+        plot_data = generate_portfolio_graph(db_manager, portfolio_id)
+        
+        return render_template('dashboard.html', 
+                              strategies=strategies,
+                              orders=orders,
+                              trades=trades,
+                              logs=logs,
+                              snapshots=snapshots,
+                              plot_data=plot_data,
+                              portfolio_id=portfolio_id)
+    finally:
+        db_manager.disconnect()
 
 @app.route('/strategies')
 def strategies():
@@ -653,6 +829,225 @@ with open('templates/portfolio_snapshots.html', 'w') as f:
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+    ''')
+
+# Create the dashboard.html template
+with open('templates/dashboard.html', 'w') as f:
+    f.write('''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trading System Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .section-card { margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="mb-4 text-center">Trading System Dashboard</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <!-- Portfolio Performance Graph -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Portfolio Performance (ID: {{ portfolio_id }})</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if plot_data %}
+                        <img src="data:image/png;base64,{{ plot_data }}" class="img-fluid" alt="Portfolio Performance Graph">
+                        {% else %}
+                        <p class="text-center">No portfolio data available</p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('portfolio_snapshots') }}" class="btn btn-primary btn-sm">View All Snapshots</a>
+                    </div>
+                </div>
+                
+                <!-- Strategies Section -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Strategies</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Strategy ID</th>
+                                    <th>Direction</th>
+                                    <th>Symbol</th>
+                                    <th>Portfolio ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for strategy in strategies %}
+                                <tr>
+                                    <td>{{ strategy.strategy_id }}</td>
+                                    <td>{{ strategy.direction }}</td>
+                                    <td>{{ strategy.symbol }}</td>
+                                    <td>{{ strategy.portfolio_id }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('strategies') }}" class="btn btn-primary btn-sm">View All Strategies</a>
+                    </div>
+                </div>
+                
+                <!-- Portfolio Snapshots Section -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Recent Portfolio Snapshots</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Fund</th>
+                                    <th>Leverage</th>
+                                    <th>Position</th>
+                                    <th>Order Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for snapshot in snapshots %}
+                                <tr>
+                                    <td>{{ snapshot.time }}</td>
+                                    <td>{{ snapshot.fund }}</td>
+                                    <td>{{ snapshot.leverage }}</td>
+                                    <td>{{ snapshot.position }}</td>
+                                    <td>{{ snapshot.order_value }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <!-- Orders Section -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Recent Orders</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Time</th>
+                                    <th>Strategy ID</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th>Side</th>
+                                    <th>Symbol</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ order.order_id }}</td>
+                                    <td>{{ order.time }}</td>
+                                    <td>{{ order.strategy_id }}</td>
+                                    <td>{{ order.price }}</td>
+                                    <td>{{ order.qty }}</td>
+                                    <td>{{ order.side }}</td>
+                                    <td>{{ order.symbol }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('orders') }}" class="btn btn-primary btn-sm">View All Orders</a>
+                    </div>
+                </div>
+                
+                <!-- Trades Section -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Recent Trades</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Trade ID</th>
+                                    <th>Time</th>
+                                    <th>Strategy ID</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th>Side</th>
+                                    <th>Symbol</th>
+                                    <th>Volume</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trade in trades %}
+                                <tr>
+                                    <td>{{ trade.trade_id }}</td>
+                                    <td>{{ trade.time }}</td>
+                                    <td>{{ trade.strategy_id }}</td>
+                                    <td>{{ trade.price }}</td>
+                                    <td>{{ trade.qty }}</td>
+                                    <td>{{ trade.side }}</td>
+                                    <td>{{ trade.symbol }}</td>
+                                    <td>{{ trade.volume }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('trades') }}" class="btn btn-primary btn-sm">View All Trades</a>
+                    </div>
+                </div>
+                
+                <!-- Logs Section -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Recent Logs</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Log ID</th>
+                                    <th>Time</th>
+                                    <th>Message</th>
+                                    <th>Portfolio ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.log_id }}</td>
+                                    <td>{{ log.time }}</td>
+                                    <td>{{ log.message }}</td>
+                                    <td>{{ log.portfolio_id }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('logs') }}" class="btn btn-primary btn-sm">View All Logs</a>
+                    </div>
                 </div>
             </div>
         </div>
