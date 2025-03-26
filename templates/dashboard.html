@@ -21,14 +21,56 @@
                         <h5>Portfolio Performance (ID: {{ portfolio_id }})</h5>
                     </div>
                     <div class="card-body">
-                        {% if plot_data %}
-                        <img src="data:image/png;base64,{{ plot_data }}" class="img-fluid" alt="Portfolio Performance Graph">
+                        {% if portfolio_plot %}
+                        <img src="data:image/png;base64,{{ portfolio_plot }}" class="img-fluid" alt="Portfolio Performance Graph">
                         {% else %}
                         <p class="text-center">No portfolio data available</p>
                         {% endif %}
                     </div>
                     <div class="card-footer">
                         <a href="{{ url_for('portfolio_snapshots') }}" class="btn btn-primary btn-sm">View All Snapshots</a>
+                    </div>
+                </div>
+                
+                <!-- Strategy PnL Graph -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Strategy PnL Over Time</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if strategy_pnl_plot %}
+                        <img src="data:image/png;base64,{{ strategy_pnl_plot }}" class="img-fluid" alt="Strategy PnL Graph">
+                        {% else %}
+                        <p class="text-center">No strategy PnL data available</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Trade Volume Graph -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Trading Volume Over Time</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if trade_volume_plot %}
+                        <img src="data:image/png;base64,{{ trade_volume_plot }}" class="img-fluid" alt="Trade Volume Graph">
+                        {% else %}
+                        <p class="text-center">No trade volume data available</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Trade Fee Graph -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Trading Fees Over Time</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if trade_fee_plot %}
+                        <img src="data:image/png;base64,{{ trade_fee_plot }}" class="img-fluid" alt="Trade Fee Graph">
+                        {% else %}
+                        <p class="text-center">No trade fee data available</p>
+                        {% endif %}
                     </div>
                 </div>
                 

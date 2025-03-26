@@ -176,6 +176,197 @@ def generate_portfolio_graph(db_manager, portfolio_id):
     
     return plot_data
 
+def generate_trade_volume_fee_graph(db_manager):
+    """Generate graph showing both hourly and accumulated trade volume on the same plot"""
+    try:
+        # First check if we have any trade data
+        db_manager.cursor.execute("SELECT COUNT(*) FROM Trade")
+        count = db_manager.cursor.fetchone()[0]
+        
+        if count == 0:
+            print("No trade data found in database")
+            return None
+            
+        # Query to get hourly trade volumes
+        db_manager.cursor.execute("""
+            SELECT 
+                DATE_TRUNC('hour', time) as hour, 
+                SUM(volume) as total_volume
+            FROM Trade
+            GROUP BY hour
+            ORDER BY hour
+        """)
+        
+        trade_data = db_manager.cursor.fetchall()
+        
+        if not trade_data:
+            print("Query returned no data")
+            return None
+        
+        print(f"Found {len(trade_data)} hours of trade data")
+        
+        # Extract data from query results
+        hours = [row[0] for row in trade_data]
+        volumes = [float(row[1]) for row in trade_data]
+        
+        # Calculate accumulated volume
+        accumulated_volumes = []
+        total = 0
+        for vol in volumes:
+            total += vol
+            accumulated_volumes.append(total)
+        
+        # Create the plot with two y-axes
+        fig, ax1 = plt.subplots(figsize=(14, 8))
+        
+        # Plot hourly volume as bars on the primary y-axis
+        color = 'tab:blue'
+        ax1.set_xlabel('Time')
+        ax1.set_ylabel('Hourly Volume (USDT)', color=color)
+        
+        if len(hours) > 24:
+            # For many data points, use a line plot
+            ax1.plot(hours, volumes, color=color, linewidth=1.5, marker='.', markersize=5, label='Hourly Volume')
+        else:
+            # For fewer points, use bars
+            ax1.bar(hours, volumes, color=color, alpha=0.6, label='Hourly Volume', width=0.03)
+        
+        ax1.tick_params(axis='y', labelcolor=color)
+        
+        # Create a secondary y-axis for accumulated volume
+        ax2 = ax1.twinx()
+        color = 'tab:green'
+        ax2.set_ylabel('Accumulated Volume (USDT)', color=color)
+        ax2.plot(hours, accumulated_volumes, color=color, linewidth=2.5, label='Accumulated Volume')
+        ax2.tick_params(axis='y', labelcolor=color)
+        
+        # Add grid lines (only for the primary axis to avoid clutter)
+        ax1.grid(True, alpha=0.3)
+        
+        # Add title
+        plt.title('Trading Volume Over Time (Hourly)', fontsize=14)
+        
+        # Create a combined legend
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+        
+        # Format x-axis to show dates more clearly
+        fig.autofmt_xdate()
+        
+        plt.tight_layout()
+        
+        # Convert plot to base64 string
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        buf.seek(0)
+        plot_data = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close()
+        
+        return plot_data
+        
+    except Exception as e:
+        print(f"Error generating trade volume graph: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def generate_trade_fee_graph(db_manager):
+    """Generate graph showing both hourly and accumulated trading fees"""
+    try:
+        # First check if we have any trade data
+        db_manager.cursor.execute("SELECT COUNT(*) FROM Trade")
+        count = db_manager.cursor.fetchone()[0]
+        
+        if count == 0:
+            print("No trade data found in database")
+            return None
+            
+        # Query to get hourly trade volumes and calculate fees
+        # Assuming a 0.1% fee on each trade
+        db_manager.cursor.execute("""
+            SELECT 
+                DATE_TRUNC('hour', time) as hour, 
+                SUM(volume * -0.0005) as hourly_fee  -- 0.1% fee
+            FROM Trade
+            GROUP BY hour
+            ORDER BY hour
+        """)
+        
+        fee_data = db_manager.cursor.fetchall()
+        
+        if not fee_data:
+            print("Query returned no fee data")
+            return None
+        
+        print(f"Found {len(fee_data)} hours of fee data")
+        
+        # Extract data from query results
+        hours = [row[0] for row in fee_data]
+        fees = [float(row[1]) for row in fee_data]
+        
+        # Calculate accumulated fees
+        accumulated_fees = []
+        total = 0
+        for fee in fees:
+            total += fee
+            accumulated_fees.append(total)
+        
+        # Create the plot with two y-axes
+        fig, ax1 = plt.subplots(figsize=(14, 8))
+        
+        # Plot hourly fees as bars on the primary y-axis
+        color = 'tab:purple'
+        ax1.set_xlabel('Time')
+        ax1.set_ylabel('Hourly Fees (USDT)', color=color)
+        
+        if len(hours) > 24:
+            # For many data points, use a line plot
+            ax1.plot(hours, fees, color=color, linewidth=1.5, marker='.', markersize=5, label='Hourly Fees')
+        else:
+            # For fewer points, use bars
+            ax1.bar(hours, fees, color=color, alpha=0.6, label='Hourly Fees', width=0.03)
+        
+        ax1.tick_params(axis='y', labelcolor=color)
+        
+        # Create a secondary y-axis for accumulated fees
+        ax2 = ax1.twinx()
+        color = 'tab:orange'
+        ax2.set_ylabel('Accumulated Fees (USDT)', color=color)
+        ax2.plot(hours, accumulated_fees, color=color, linewidth=2.5, label='Accumulated Fees')
+        ax2.tick_params(axis='y', labelcolor=color)
+        
+        # Add grid lines (only for the primary axis to avoid clutter)
+        ax1.grid(True, alpha=0.3)
+        
+        # Add title
+        plt.title('Trading Fees Over Time (Hourly)', fontsize=14)
+        
+        # Create a combined legend
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+        
+        # Format x-axis to show dates more clearly
+        fig.autofmt_xdate()
+        
+        plt.tight_layout()
+        
+        # Convert plot to base64 string
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        buf.seek(0)
+        plot_data = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close()
+        
+        return plot_data
+        
+    except Exception as e:
+        print(f"Error generating fee graph: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 @app.route('/')
 def index():
     """Main dashboard page showing all data together"""
@@ -190,7 +381,16 @@ def index():
         trades = get_trades(db_manager)
         logs = get_logs(db_manager)
         snapshots = get_portfolio_snapshots(db_manager, portfolio_id)
-        plot_data = generate_portfolio_graph(db_manager, portfolio_id)
+        
+        # Generate plots
+        portfolio_plot = generate_portfolio_graph(db_manager, portfolio_id)
+        trade_volume_plot = generate_trade_volume_fee_graph(db_manager)
+        trade_fee_plot = generate_trade_fee_graph(db_manager)
+        
+        # Debug print
+        print(f"Portfolio plot generated: {'Yes' if portfolio_plot else 'No'}")
+        print(f"Trade volume plot generated: {'Yes' if trade_volume_plot else 'No'}")
+        print(f"Trade fee plot generated: {'Yes' if trade_fee_plot else 'No'}")
         
         return render_template('dashboard.html', 
                               strategies=strategies,
@@ -198,7 +398,9 @@ def index():
                               trades=trades,
                               logs=logs,
                               snapshots=snapshots,
-                              plot_data=plot_data,
+                              portfolio_plot=portfolio_plot,
+                              trade_volume_plot=trade_volume_plot,
+                              trade_fee_plot=trade_fee_plot,
                               portfolio_id=portfolio_id)
     finally:
         db_manager.disconnect()
@@ -864,14 +1066,56 @@ with open('templates/dashboard.html', 'w') as f:
                         <h5>Portfolio Performance (ID: {{ portfolio_id }})</h5>
                     </div>
                     <div class="card-body">
-                        {% if plot_data %}
-                        <img src="data:image/png;base64,{{ plot_data }}" class="img-fluid" alt="Portfolio Performance Graph">
+                        {% if portfolio_plot %}
+                        <img src="data:image/png;base64,{{ portfolio_plot }}" class="img-fluid" alt="Portfolio Performance Graph">
                         {% else %}
                         <p class="text-center">No portfolio data available</p>
                         {% endif %}
                     </div>
                     <div class="card-footer">
                         <a href="{{ url_for('portfolio_snapshots') }}" class="btn btn-primary btn-sm">View All Snapshots</a>
+                    </div>
+                </div>
+                
+                <!-- Strategy PnL Graph -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Strategy PnL Over Time</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if strategy_pnl_plot %}
+                        <img src="data:image/png;base64,{{ strategy_pnl_plot }}" class="img-fluid" alt="Strategy PnL Graph">
+                        {% else %}
+                        <p class="text-center">No strategy PnL data available</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Trade Volume Graph -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Trading Volume Over Time</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if trade_volume_plot %}
+                        <img src="data:image/png;base64,{{ trade_volume_plot }}" class="img-fluid" alt="Trade Volume Graph">
+                        {% else %}
+                        <p class="text-center">No trade volume data available</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Trade Fee Graph -->
+                <div class="card section-card">
+                    <div class="card-header">
+                        <h5>Trading Fees Over Time</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if trade_fee_plot %}
+                        <img src="data:image/png;base64,{{ trade_fee_plot }}" class="img-fluid" alt="Trade Fee Graph">
+                        {% else %}
+                        <p class="text-center">No trade fee data available</p>
+                        {% endif %}
                     </div>
                 </div>
                 
