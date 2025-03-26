@@ -271,6 +271,204 @@ def generate_trade_volume_fee_graph(db_manager):
         traceback.print_exc()
         return None
 
+def generate_strategy_pnl_graph(db_manager):
+    """Generate graph showing PnL for each strategy over time"""
+    try:
+        # First check if we have any strategies
+        db_manager.cursor.execute("SELECT COUNT(*) FROM Strategy")
+        count = db_manager.cursor.fetchone()[0]
+        
+        if count == 0:
+            print("No strategies found in database")
+            return None
+        
+        # Get all strategies
+        db_manager.cursor.execute("""
+            SELECT strategy_id, symbol, direction
+            FROM Strategy
+            ORDER BY strategy_id
+        """)
+        
+        strategies = db_manager.cursor.fetchall()
+        strategy_ids = [s[0] for s in strategies]
+        
+        print(f"Found {len(strategies)} strategies")
+        
+        # Get all trades grouped by strategy and ordered by time
+        db_manager.cursor.execute("""
+            SELECT 
+                strategy_id,
+                time,
+                side,
+                price,
+                qty,
+                volume
+            FROM Trade
+            ORDER BY strategy_id, time
+        """)
+        
+        trades = db_manager.cursor.fetchall()
+        
+        if not trades:
+            print("No trades found")
+            return None
+        
+        print(f"Found {len(trades)} trades")
+        
+        # Get the latest price for each symbol to calculate unrealized PnL
+        db_manager.cursor.execute("""
+            SELECT 
+                symbol,
+                MAX(time) as latest_time
+            FROM Trade
+            GROUP BY symbol
+        """)
+        
+        latest_times = {row[0]: row[1] for row in db_manager.cursor.fetchall()}
+        
+        latest_prices = {}
+        for symbol, latest_time in latest_times.items():
+            db_manager.cursor.execute("""
+                SELECT price
+                FROM Trade
+                WHERE symbol = %s AND time = %s
+                LIMIT 1
+            """, (symbol, latest_time))
+            
+            result = db_manager.cursor.fetchone()
+            if result:
+                latest_prices[symbol] = result[0]
+        
+        # Calculate PnL for each strategy over time
+        strategy_data = {}
+        
+        for strategy_id in strategy_ids:
+            strategy_trades = [t for t in trades if t[0] == strategy_id]
+            
+            if not strategy_trades:
+                continue
+                
+            # Get the symbol for this strategy
+            symbol = next((s[1] for s in strategies if s[0] == strategy_id), None)
+            if not symbol:
+                continue
+                
+            # Initialize PnL tracking
+            times = []
+            pnls = []
+            cumulative_pnl = 0
+            position = 0
+            avg_entry_price = 0
+            
+            for trade in strategy_trades:
+                _, time, side, price, qty, volume = trade
+                
+                # Update position and calculate realized PnL
+                if side == 'buy':
+                    # If we're adding to position
+                    if position >= 0:
+                        # Update average entry price
+                        total_cost = position * avg_entry_price + volume
+                        position += qty
+                        avg_entry_price = total_cost / position if position > 0 else 0
+                    else:
+                        # We're covering a short position
+                        realized_pnl = (avg_entry_price - price) * min(abs(position), qty)
+                        cumulative_pnl += realized_pnl
+                        
+                        # Update position
+                        position += qty
+                        if position > 0:
+                            # We've flipped to long, reset avg price for remaining qty
+                            avg_entry_price = price
+                        elif position < 0:
+                            # Still short, avg price stays the same
+                            pass
+                        else:
+                            # Flat position
+                            avg_entry_price = 0
+                else:  # side == 'sell'
+                    # If we're adding to short position
+                    if position <= 0:
+                        # Update average entry price for short
+                        total_cost = abs(position) * avg_entry_price + volume
+                        position -= qty
+                        avg_entry_price = total_cost / abs(position) if position < 0 else 0
+                    else:
+                        # We're selling a long position
+                        realized_pnl = (price - avg_entry_price) * min(position, qty)
+                        cumulative_pnl += realized_pnl
+                        
+                        # Update position
+                        position -= qty
+                        if position < 0:
+                            # We've flipped to short, reset avg price for remaining qty
+                            avg_entry_price = price
+                        elif position > 0:
+                            # Still long, avg price stays the same
+                            pass
+                        else:
+                            # Flat position
+                            avg_entry_price = 0
+                
+                # Calculate unrealized PnL for current position
+                unrealized_pnl = 0
+                if position != 0 and symbol in latest_prices:
+                    latest_price = latest_prices[symbol]
+                    if position > 0:
+                        unrealized_pnl = (latest_price - avg_entry_price) * position
+                    else:
+                        unrealized_pnl = (avg_entry_price - latest_price) * abs(position)
+                
+                # Total PnL = realized + unrealized
+                total_pnl = cumulative_pnl + unrealized_pnl
+                
+                times.append(time)
+                pnls.append(total_pnl)
+            
+            strategy_data[strategy_id] = {
+                'times': times,
+                'pnls': pnls,
+                'final_pnl': pnls[-1] if pnls else 0
+            }
+        
+        if not strategy_data:
+            print("No PnL data calculated")
+            return None
+        
+        # Create the plot
+        plt.figure(figsize=(14, 8))
+        
+        # Plot PnL for each strategy
+        for strategy_id, data in strategy_data.items():
+            plt.plot(data['times'], data['pnls'], linewidth=2, marker='.', markersize=3, label=f"{strategy_id} (PnL: {data['final_pnl']:.2f})")
+        
+        plt.title('Strategy PnL Over Time', fontsize=14)
+        plt.xlabel('Time')
+        plt.ylabel('PnL (USDT)')
+        plt.grid(True, alpha=0.3)
+        plt.legend(loc='best')
+        
+        # Format x-axis to show dates more clearly
+        plt.gcf().autofmt_xdate()
+        
+        plt.tight_layout()
+        
+        # Convert plot to base64 string
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        buf.seek(0)
+        plot_data = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close()
+        
+        return plot_data
+        
+    except Exception as e:
+        print(f"Error generating strategy PnL graph: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 def generate_trade_fee_graph(db_manager):
     """Generate graph showing both hourly and accumulated trading fees"""
     try:
@@ -386,11 +584,13 @@ def index():
         portfolio_plot = generate_portfolio_graph(db_manager, portfolio_id)
         trade_volume_plot = generate_trade_volume_fee_graph(db_manager)
         trade_fee_plot = generate_trade_fee_graph(db_manager)
+        strategy_pnl_plot = generate_strategy_pnl_graph(db_manager)
         
         # Debug print
         print(f"Portfolio plot generated: {'Yes' if portfolio_plot else 'No'}")
         print(f"Trade volume plot generated: {'Yes' if trade_volume_plot else 'No'}")
         print(f"Trade fee plot generated: {'Yes' if trade_fee_plot else 'No'}")
+        print(f"Strategy PnL plot generated: {'Yes' if strategy_pnl_plot else 'No'}")
         
         return render_template('dashboard.html', 
                               strategies=strategies,
@@ -401,6 +601,7 @@ def index():
                               portfolio_plot=portfolio_plot,
                               trade_volume_plot=trade_volume_plot,
                               trade_fee_plot=trade_fee_plot,
+                              strategy_pnl_plot=strategy_pnl_plot,
                               portfolio_id=portfolio_id)
     finally:
         db_manager.disconnect()
