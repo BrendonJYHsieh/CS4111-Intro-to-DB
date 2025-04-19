@@ -1,0 +1,258 @@
+-- Query 1: Daily volatility comparison between BTC and ETH
+-- Uses date functions, CASE statement, and multiple tables in FROM clause
+SELECT
+    CAST(btc.datetime AS DATE) AS trading_date,
+    COUNT(*) AS minute_candles,
+    MAX(btc.high) / MIN(btc.low) - 1 AS btc_daily_range_pct,
+    MAX(eth.high) / MIN(eth.low) - 1 AS eth_daily_range_pct,
+    CASE
+        WHEN
+            MAX(btc.high) / MIN(btc.low) > MAX(eth.high) / MIN(eth.low)
+            THEN 'BTC more volatile'
+        WHEN
+            MAX(btc.high) / MIN(btc.low) < MAX(eth.high) / MIN(eth.low)
+            THEN 'ETH more volatile'
+        ELSE 'Equal volatility'
+    END AS volatility_comparison
+FROM
+    "BTCUSDT.csv" AS btc
+INNER JOIN
+    "ETHUSDT.csv" AS eth ON btc.datetime = eth.datetime
+WHERE
+    btc.datetime BETWEEN '2020-01-01' AND '2023-01-01'
+GROUP BY
+    CAST(btc.datetime AS DATE)
+ORDER BY
+    btc_daily_range_pct DESC
+LIMIT 10;
+
+-- Query 2: Correlation between BTC and ETH during specific market conditions
+-- Uses LIKE in WHERE clause, grouping with HAVING clause
+SELECT 
+    SUBSTR(btc.datetime, 1, 7) as month,
+    CORR(btc.close, eth.close) as price_correlation,
+    AVG(btc.volume) as avg_btc_volume,
+    AVG(eth.volume) as avg_eth_volume
+FROM 
+    "BTCUSDT.csv" btc
+JOIN 
+    "ETHUSDT.csv" eth ON btc.datetime = eth.datetime
+WHERE 
+    btc.datetime LIKE '2021%' -- Filter for year 2021
+GROUP BY 
+    SUBSTR(btc.datetime, 1, 7)
+HAVING 
+    AVG(btc.volume) > 100 -- Only months with significant trading volume
+ORDER BY 
+    price_correlation;
+
+-- Query 3: Identifying potential arbitrage opportunities
+-- Uses correlated subquery
+SELECT 
+    btc.datetime,
+    btc.close as btc_price,
+    eth.close as eth_price,
+    eth.close / btc.close as eth_btc_ratio,
+    (eth.close / btc.close) - (
+        SELECT AVG(e.close / b.close)
+        FROM "ETHUSDT.csv" e
+        JOIN "BTCUSDT.csv" b ON e.datetime = b.datetime
+        WHERE CAST(b.datetime AS DATE) = CAST(btc.datetime AS DATE)
+    ) as ratio_deviation
+FROM 
+    "BTCUSDT.csv" btc
+JOIN 
+    "ETHUSDT.csv" eth ON btc.datetime = eth.datetime
+WHERE 
+    btc.datetime BETWEEN '2022-01-01' AND '2022-02-01'
+ORDER BY 
+    ABS((eth.close / btc.close) - (
+        SELECT AVG(e.close / b.close)
+        FROM "ETHUSDT.csv" e
+        JOIN "BTCUSDT.csv" b ON e.datetime = b.datetime
+        WHERE CAST(b.datetime AS DATE) = CAST(btc.datetime AS DATE)
+    )) DESC
+LIMIT 20;
+
+-- Query 4: Comparing high-volume trading periods
+-- Uses uncorrelated subquery and multiple tables
+SELECT 
+    CAST(btc.datetime AS DATE) as trading_date,
+    SUM(btc.volume) as btc_volume,
+    SUM(eth.volume) as eth_volume,
+    SUM(btc.volume * btc.close) as btc_dollar_volume,
+    SUM(eth.volume * eth.close) as eth_dollar_volume
+FROM 
+    "BTCUSDT.csv" btc
+JOIN 
+    "ETHUSDT.csv" eth ON btc.datetime = eth.datetime
+WHERE 
+    btc.volume > (SELECT AVG(volume) * 3 FROM "BTCUSDT.csv") -- High volume periods
+    OR eth.volume > (SELECT AVG(volume) * 3 FROM "ETHUSDT.csv")
+GROUP BY 
+    CAST(btc.datetime AS DATE)
+ORDER BY 
+    btc_dollar_volume + eth_dollar_volume DESC
+LIMIT 15;
+
+-- Query 5: Price movement comparison during market crashes
+-- Uses LEFT OUTER JOIN and multiple tables
+SELECT 
+    CAST(btc.datetime AS DATE) as crash_date,
+    MIN(btc.low) as btc_lowest_price,
+    MAX(btc.high) as btc_highest_price,
+    MIN(eth.low) as eth_lowest_price,
+    MAX(eth.high) as eth_highest_price,
+    (MIN(btc.low) / MAX(btc.high) - 1) * 100 as btc_crash_percentage,
+    (MIN(eth.low) / MAX(eth.high) - 1) * 100 as eth_crash_percentage
+FROM 
+    "BTCUSDT.csv" btc
+LEFT OUTER JOIN 
+    "ETHUSDT.csv" eth ON btc.datetime = eth.datetime
+WHERE 
+    CAST(btc.datetime AS DATE) IN (
+        '2021-05-19', -- Known crash dates
+        '2021-12-04',
+        '2022-01-21',
+        '2022-06-18'
+    )
+GROUP BY 
+    CAST(btc.datetime AS DATE)
+ORDER BY 
+    btc_crash_percentage;
+
+-- Query 6: Comparing BTC price at different times of the day
+-- Uses single table mentioned multiple times in FROM clause (simple version)
+SELECT 
+    CAST(morning.datetime AS DATE) as trading_date,
+    AVG(morning.close) as morning_price,
+    AVG(evening.close) as evening_price,
+    (AVG(evening.close) / AVG(morning.close) - 1) * 100 as intraday_change_pct
+FROM 
+    "BTCUSDT.csv" morning
+JOIN 
+    "BTCUSDT.csv" evening ON CAST(morning.datetime AS DATE) = CAST(evening.datetime AS DATE)
+WHERE 
+    STRFTIME('%H', morning.datetime) = '09' AND
+    STRFTIME('%H', evening.datetime) = '17' AND
+    morning.datetime BETWEEN '2021-01-01' AND '2021-12-31'
+GROUP BY 
+    CAST(morning.datetime AS DATE)
+ORDER BY 
+    ABS(intraday_change_pct) DESC
+LIMIT 10;
+
+-- Query 7: Hourly trading patterns analysis
+-- Uses DISTINCT in an important way
+SELECT DISTINCT
+    STRFTIME('%H', btc.datetime) as hour_of_day,
+    AVG(btc.volume) as avg_btc_volume,
+    AVG(eth.volume) as avg_eth_volume,
+    AVG(btc.high - btc.low) as avg_btc_price_range,
+    AVG(eth.high - eth.low) as avg_eth_price_range
+FROM 
+    "BTCUSDT.csv" btc
+JOIN 
+    "ETHUSDT.csv" eth ON btc.datetime = eth.datetime
+WHERE 
+    btc.datetime BETWEEN '2022-01-01' AND '2022-12-31'
+GROUP BY 
+    STRFTIME('%H', btc.datetime)
+ORDER BY 
+    avg_btc_volume DESC;
+
+-- Query 8: Comparing weekend vs weekday trading
+-- Uses UNION
+SELECT 
+    'Weekday' as day_type,
+    AVG(btc.volume) as avg_btc_volume,
+    AVG(eth.volume) as avg_eth_volume,
+    AVG(btc.high - btc.low) as avg_btc_price_range,
+    AVG(eth.high - eth.low) as avg_eth_price_range,
+    COUNT(*) / COUNT(DISTINCT CAST(btc.datetime AS DATE)) as avg_candles_per_day
+FROM 
+    "BTCUSDT.csv" btc
+JOIN 
+    "ETHUSDT.csv" eth ON btc.datetime = eth.datetime
+WHERE 
+    STRFTIME('%w', btc.datetime) NOT IN ('0', '6') -- Monday to Friday
+    AND btc.datetime BETWEEN '2020-01-01' AND '2022-12-31'
+
+UNION
+
+SELECT 
+    'Weekend' as day_type,
+    AVG(btc.volume) as avg_btc_volume,
+    AVG(eth.volume) as avg_eth_volume,
+    AVG(btc.high - btc.low) as avg_btc_price_range,
+    AVG(eth.high - eth.low) as avg_eth_price_range,
+    COUNT(*) / COUNT(DISTINCT CAST(btc.datetime AS DATE)) as avg_candles_per_day
+FROM 
+    "BTCUSDT.csv" btc
+JOIN 
+    "ETHUSDT.csv" eth ON btc.datetime = eth.datetime
+WHERE 
+    STRFTIME('%w', btc.datetime) IN ('0', '6') -- Saturday and Sunday
+    AND btc.datetime BETWEEN '2020-01-01' AND '2022-12-31';
+
+-- Query 9: Monthly performance comparison
+-- Uses 2 tables in FROM clause with a different approach
+WITH monthly_averages AS (
+    SELECT 
+        SUBSTR(btc.datetime, 1, 7) as month,
+        AVG(btc.close) as avg_btc_price,
+        AVG(eth.close) as avg_eth_price,
+        SUM(btc.volume * btc.close) as btc_monthly_dollar_volume,
+        SUM(eth.volume * eth.close) as eth_monthly_dollar_volume
+    FROM 
+        "BTCUSDT.csv" btc
+    JOIN 
+        "ETHUSDT.csv" eth ON btc.datetime = eth.datetime
+    WHERE 
+        btc.datetime BETWEEN '2020-02-01' AND '2022-12-31'
+    GROUP BY 
+        SUBSTR(btc.datetime, 1, 7)
+)
+SELECT 
+    current_month.month,
+    current_month.avg_btc_price,
+    current_month.avg_eth_price,
+    (current_month.avg_btc_price / prev_month.avg_btc_price - 1) * 100 as btc_monthly_change_pct,
+    (current_month.avg_eth_price / prev_month.avg_eth_price - 1) * 100 as eth_monthly_change_pct,
+    current_month.btc_monthly_dollar_volume,
+    current_month.eth_monthly_dollar_volume
+FROM 
+    monthly_averages current_month
+LEFT JOIN 
+    monthly_averages prev_month ON prev_month.month = (
+        SELECT MAX(month) 
+        FROM monthly_averages 
+        WHERE month < current_month.month
+    )
+ORDER BY 
+    current_month.month;
+
+-- Query 10: Identifying extreme price movement minutes
+-- Uses CASE statement and LIMIT with ORDER BY
+SELECT 
+    btc.datetime,
+    btc.open as btc_open,
+    btc.close as btc_close,
+    eth.open as eth_open,
+    eth.close as eth_close,
+    (btc.close / btc.open - 1) * 100 as btc_minute_change_pct,
+    (eth.close / eth.open - 1) * 100 as eth_minute_change_pct,
+    CASE
+        WHEN ABS(btc.close / btc.open - 1) > ABS(eth.close / eth.open - 1) THEN 'BTC moved more'
+        WHEN ABS(btc.close / btc.open - 1) < ABS(eth.close / eth.open - 1) THEN 'ETH moved more'
+        ELSE 'Equal movement'
+    END as larger_mover
+FROM 
+    "BTCUSDT.csv" btc
+JOIN 
+    "ETHUSDT.csv" eth ON btc.datetime = eth.datetime
+WHERE 
+    ABS(btc.close / btc.open - 1) > 0.02 OR ABS(eth.close / eth.open - 1) > 0.02 -- Minutes with >2% price change
+ORDER BY 
+    GREATEST(ABS(btc.close / btc.open - 1), ABS(eth.close / eth.open - 1)) DESC
+LIMIT 20;

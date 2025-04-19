@@ -78,3 +78,32 @@ CREATE TABLE Trade (
     CONSTRAINT trade_side_check CHECK (side IN ('buy', 'sell')),
     CONSTRAINT trade_volume_equals_price_qty CHECK (abs(volume - (price * qty)) < 0.01)
 );
+
+-- 1. Adding a TEXT attribute for full-text search
+CREATE TABLE Strategy_Analysis (
+    analysis_id SERIAL PRIMARY KEY,
+    strategy_id VARCHAR(255) NOT NULL,
+    analysis_text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (strategy_id) REFERENCES Strategy(strategy_id)
+);
+-- Create a GIN index for full-text search
+CREATE INDEX idx_strategy_analysis_text ON Strategy_Analysis USING GIN (to_tsvector('english', analysis_text));
+
+-- 2. Adding an array attribute
+ALTER TABLE Strategy ADD COLUMN historical_symbols VARCHAR(255)[] DEFAULT '{}';
+
+-- 3. Create a composite type and a table of that type
+CREATE TYPE trade_summary_type AS (
+    symbol VARCHAR(255),
+    avg_price DOUBLE PRECISION,
+    total_qty DOUBLE PRECISION,
+    total_volume DOUBLE PRECISION
+);
+
+CREATE TABLE Trade_Summary OF trade_summary_type (
+    symbol PRIMARY KEY,
+    CONSTRAINT avg_price_check CHECK (avg_price > 0),
+    CONSTRAINT total_qty_check CHECK (total_qty > 0),
+    CONSTRAINT total_volume_check CHECK (total_volume > 0)
+);
