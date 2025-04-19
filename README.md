@@ -175,7 +175,7 @@ This query finds strategy analyses containing both "risk" and "volatility" terms
 ```sql
 SELECT strategy_id, symbol AS current_symbol, historical_symbols
 FROM Strategy 
-WHERE 'AAPL' = ANY(historical_symbols)
+WHERE 'BTC' = ANY(historical_symbols)
 ORDER BY strategy_id;
 ```
 
@@ -188,8 +188,8 @@ SELECT ts.symbol, ts.avg_price, ts.total_qty, ts.total_volume,
        COUNT(t.trade_id) AS trade_count
 FROM Trade_Summary ts
 JOIN Trade t ON ts.symbol = t.symbol
-WHERE ts.avg_price > 100.0
 GROUP BY ts.symbol, ts.avg_price, ts.total_qty, ts.total_volume
 ORDER BY ts.total_volume DESC
 LIMIT 10;
 ```
+

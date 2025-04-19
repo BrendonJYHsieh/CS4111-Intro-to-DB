@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 import json
 import re
+from datetime import timedelta
 
 class DatabaseManager:
     def __init__(self, host: str, database: str, user: str, password: str, port: int = 5432):
@@ -448,6 +449,8 @@ class DatabaseManager:
             print(f"Error processing portfolio snapshots from CSV: {e}")
             raise
 
+
+
     def get_portfolio_performance(self, portfolio_id: int) -> List[Tuple]:
         """
         Get performance metrics for a portfolio based on snapshots.
@@ -867,6 +870,172 @@ def process_trades(db_manager):
         print(f"Successfully processed {len(trades)} trades")
     except Exception as e:
         print(f"Error processing trades: {e}")
+def insert_dummy_data(db_manager):
+    """Insert dummy data for all the advanced PostgreSQL features"""
+    try:
+        # # 1. Add dummy Strategy_Analysis data (10 records)
+        # analysis_data = [
+        #     ("TRND_LONG_BTC", "This strategy implements a long trend-following approach for Bitcoin. It uses EMA crossovers with risk management focused on volatility-based position sizing. Backtesting shows 15% drawdown during high volatility periods."),
+        #     ("MEAN_REV_ETH", "Mean reversion strategy for Ethereum with bollinger band signals. Risk exposure is carefully managed with stop losses set at 2% per trade to minimize drawdown impact."),
+        #     ("MOMENTUM_LONG_SOL", "Solana momentum strategy with risk controls for market downturns. The strategy experienced significant volatility during the market crash, requiring enhanced risk management."),
+        #     ("GRID_SHORT_AVAX", "Grid trading approach that shorts AVAX within predetermined price ranges. This approach helps manage risk during periods of high market uncertainty and volatility."),
+        #     ("BREAKOUT_LONG_MATIC", "Breakout strategy for MATIC that enters on volume spikes. Risk metrics indicate exposure to overnight gaps, requiring careful position sizing to mitigate volatility risk."),
+        #     ("ARBIT_BTC_ETH", "Statistical arbitrage between BTC and ETH correlation. The model includes risk parameters for correlation breakdown and handles volatility scenarios with dynamic position adjustments."),
+        #     ("SWING_SHORT_DOT", "Short-term swing trading strategy for DOT with momentum indicators. Risk management includes drawdown limits and volatility-based position scaling to protect capital during market stress."),
+        #     ("ICHIMOKU_LONG_ADA", "Ichimoku cloud strategy for ADA with multiple confirmation signals. Historically shows 12% max drawdown with higher risk during low-liquidity periods and volatility spikes."),
+        #     ("PATTERNS_SHORT_LINK", "Chart pattern recognition for LINK short entries. Backtesting data shows consistent performance except during extreme market volatility, requiring enhanced risk controls."),
+        #     ("ML_PREDICT_BNB", "Machine learning prediction model for BNB price movements. Risk assessment shows higher exposure during model retraining periods and sensitivity to volatility regime changes.")
+        # ]
+        
+        # # First, make sure these strategies exist in the Strategy table
+        # for strategy_id, _ in analysis_data:
+        #     db_manager.cursor.execute(
+        #         """INSERT INTO Strategy (strategy_id, direction, symbol, portfolio_id) 
+        #            VALUES (%s, %s, %s, %s) 
+        #            ON CONFLICT (strategy_id) DO NOTHING""",
+        #         (strategy_id, 
+        #          "long" if "LONG" in strategy_id or "ARBIT" in strategy_id or "ML" in strategy_id else "short", 
+        #          strategy_id.split("_")[-1] if "_" in strategy_id else "BTC",
+        #          1718693033751000)
+        #     )
+        
+        # # Then insert the analysis data
+        # for strategy_id, analysis_text in analysis_data:
+        #     db_manager.cursor.execute(
+        #         "INSERT INTO Strategy_Analysis (strategy_id, analysis_text) VALUES (%s, %s)",
+        #         (strategy_id, analysis_text)
+        #     )
+        
+        # # 2. Update Strategy table with historical_symbols arrays (10 records)
+        # historical_symbols_data = [
+        #     ("TRND_LONG_BTC", "{BTC,ETH,SOL}"),
+        #     ("MEAN_REV_ETH", "{ETH,LINK,DOT,UNI}"),
+        #     ("MOMENTUM_LONG_SOL", "{SOL,AVAX,BNB}"),
+        #     ("GRID_SHORT_AVAX", "{AVAX,MATIC,ADA}"),
+        #     ("BREAKOUT_LONG_MATIC", "{MATIC,SOL,DOT,LINK}"),
+        #     ("ARBIT_BTC_ETH", "{BTC,ETH}"),
+        #     ("SWING_SHORT_DOT", "{DOT,KSM,ATOM}"),
+        #     ("ICHIMOKU_LONG_ADA", "{ADA,XRP,XLM,ALGO}"),
+        #     ("PATTERNS_SHORT_LINK", "{LINK,DOT,UNI,COMP}"),
+        #     ("ML_PREDICT_BNB", "{BNB,BTC,ETH,FTT,CAKE}")
+        # ]
+        
+        # for strategy_id, symbols in historical_symbols_data:
+        #     db_manager.cursor.execute(
+        #         "UPDATE Strategy SET historical_symbols = %s WHERE strategy_id = %s",
+        #         (symbols, strategy_id)
+        #     )
+        
+        # 3. Insert data into Trade_Summary table (15 records)
+        trade_summary_data = [
+            ("BINANCE_PERP_BTC_USDT", 40000.0, 2.5, 100000.0),
+            ("BINANCE_PERP_ETH_USDT", 2500.0, 40.0, 100000.0),
+            ("BINANCE_PERP_SOL_USDT", 150.0, 500.0, 75000.0),
+            ("BINANCE_PERP_AVAX_USDT", 110.0, 600.0, 66000.0),
+            ("BINANCE_PERP_MATIC_USDT", 1.5, 10000.0, 15000.0),
+            ("BINANCE_PERP_DOT_USDT", 25.0, 2000.0, 50000.0),
+            ("BINANCE_PERP_ADA_USDT", 1.2, 30000.0, 36000.0),
+            ("BINANCE_PERP_LINK_USDT", 15.0, 3000.0, 45000.0),
+            ("BINANCE_PERP_UNI_USDT", 10.0, 4000.0, 40000.0),
+            ("BINANCE_PERP_BNB_USDT", 300.0, 150.0, 45000.0),
+            ("BINANCE_PERP_XRP_USDT", 0.8, 50000.0, 40000.0),
+            ("BINANCE_PERP_ATOM_USDT", 30.0, 1500.0, 45000.0),
+            ("BINANCE_PERP_ALGO_USDT", 0.6, 70000.0, 42000.0),
+            ("BINANCE_PERP_COMP_USDT", 60.0, 500.0, 30000.0),
+            ("BINANCE_PERP_CAKE_USDT", 8.0, 5000.0, 40000.0)
+        ]
+        
+        for symbol, avg_price, total_qty, total_volume in trade_summary_data:
+            db_manager.cursor.execute(
+                "INSERT INTO Trade_Summary (symbol, avg_price, total_qty, total_volume) VALUES (%s, %s, %s, %s) ON CONFLICT (symbol) DO UPDATE SET avg_price = EXCLUDED.avg_price, total_qty = EXCLUDED.total_qty, total_volume = EXCLUDED.total_volume",
+                (symbol, avg_price, total_qty, total_volume)
+            )
+        
+        # Make sure we have some trades to join with the Trade_Summary table for Query 3
+        # First, check if we have any trades:
+        db_manager.cursor.execute("SELECT COUNT(*) FROM Trade")
+        trade_count = db_manager.cursor.fetchone()[0]
+        
+        if trade_count < 10:
+            # Insert dummy trades for each symbol in the Trade_Summary
+            current_time = datetime.now()
+            for i, (symbol, _, _, _) in enumerate(trade_summary_data):
+                for j in range(5):  # 5 trades per symbol, 75 trades total
+                    trade_id = f"dummy_trade_{symbol}_{j}"
+                    strategy_id = [s for s, _ in analysis_data][i % 10]  # Cycle through strategies
+                    price = float(trade_summary_data[i][1]) * (0.95 + 0.1 * j/5)  # Vary price around avg
+                    qty = float(trade_summary_data[i][2]) / 10  # 1/10th of total qty per trade
+                    side = "buy" if j % 2 == 0 else "sell"
+                    volume = price * qty
+                    
+                    # Insert the trade
+                    db_manager.cursor.execute(
+                        """INSERT INTO Trade (trade_id, time, strategy_id, price, qty, side, symbol, volume) 
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (trade_id) DO NOTHING""",
+                        (trade_id, current_time - timedelta(days=j), strategy_id, price, qty, side, symbol, volume)
+                    )
+        
+        # Commit the changes
+        db_manager.commit()
+        print("Expanded dummy data inserted successfully!")
+        
+    except Exception as e:
+        print(f"Error inserting expanded dummy data: {e}")
+        db_manager.rollback()
+        raise
+
+def test_advanced_queries(db_manager):
+    """Test the three advanced queries from the README"""
+    try:
+        print("\n----- QUERY 1: Full-Text Search for Risk-Related Strategy Analysis -----")
+        db_manager.cursor.execute("""
+            SELECT s.strategy_id, s.symbol, 
+                   ts_headline('english', sa.analysis_text, to_tsquery('english', 'risk & volatility')) AS highlights
+            FROM Strategy_Analysis sa
+            JOIN Strategy s ON sa.strategy_id = s.strategy_id
+            WHERE to_tsvector('english', sa.analysis_text) @@ to_tsquery('english', 'risk & volatility')
+            ORDER BY sa.created_at DESC;
+        """)
+        results = db_manager.cursor.fetchall()
+        print(f"Found {len(results)} strategies with risk & volatility mentions:")
+        for row in results:
+            print(f"Strategy: {row[0]}, Symbol: {row[1]}")
+            print(f"Highlights: {row[2]}\n")
+        
+        print("\n----- QUERY 2: Strategies That Previously Traded Specific Symbols -----")
+        symbols_to_check = ["ETH", "BTC", "SOL"]
+        for symbol in symbols_to_check:
+            db_manager.cursor.execute(f"""
+                SELECT strategy_id, symbol AS current_symbol, historical_symbols
+                FROM Strategy 
+                WHERE '{symbol}' = ANY(historical_symbols)
+                ORDER BY strategy_id;
+            """)
+            results = db_manager.cursor.fetchall()
+            print(f"\nFound {len(results)} strategies that previously traded {symbol}:")
+            for row in results:
+                print(f"Strategy: {row[0]}, Current Symbol: {row[1]}, Historical Symbols: {row[2]}")
+        
+        print("\n----- QUERY 3: High-Value Trading Summary Analysis -----")
+        db_manager.cursor.execute("""
+            SELECT ts.symbol, ts.avg_price, ts.total_qty, ts.total_volume,
+                   COUNT(t.trade_id) AS trade_count
+            FROM Trade_Summary ts
+            JOIN Trade t ON ts.symbol = t.symbol
+            WHERE ts.avg_price > 100.0
+            GROUP BY ts.symbol, ts.avg_price, ts.total_qty, ts.total_volume
+            ORDER BY ts.total_volume DESC
+            LIMIT 10;
+        """)
+        results = db_manager.cursor.fetchall()
+        print(f"Found {len(results)} high-value trading symbols (price > $100):")
+        for row in results:
+            print(f"Symbol: {row[0]}, Avg Price: ${row[1]:.2f}, Total Qty: {row[2]:.2f}, " 
+                  f"Total Volume: ${row[3]:,.2f}, Trade Count: {row[4]}")
+            
+    except Exception as e:
+        print(f"Error testing advanced queries: {e}")
+        raise
 
 if __name__ == "__main__":
     # Initialize the database manager
@@ -884,14 +1053,19 @@ if __name__ == "__main__":
 
         # drop_all_tables(db_manager)
         # create_database_schema_from_file(db_manager, 'scheme')
+        # Insert dummy data for advanced features
+        insert_dummy_data(db_manager)
+        
+        # Test the three advanced queries
+        test_advanced_queries(db_manager)
         # db_manager.insert_system(1718693033751000)
         # db_manager.insert_portfolio(1718693033751000, "RapidX Dev")
         # process_trades(db_manager)
         # process_orders(db_manager)
-        db_manager.insert_portfolio_snapshots_from_csv(
-            "../Maker-Trade-System/dashboard/combined_history_copy.csv", 
-            portfolio_id
-        )
+        # db_manager.insert_portfolio_snapshots_from_csv(
+        #     "../Maker-Trade-System/dashboard/combined_history_copy.csv", 
+        #     portfolio_id
+        # )
         
 
 
